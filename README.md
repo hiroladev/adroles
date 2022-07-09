@@ -17,7 +17,7 @@
 ## Requests, criticism, errors, comments, suggestions for improvement ...
 
 Bring it on! :+1: Please write me everything. The app is supposed to be useful.
-Either you use the same [page](https://github.com/hiroladev/RunningPlan/issues) or\
+Either you use the same [page](https://github.com/hiroladev/adroles/issues) or\
 You write me an <a href="mailto:development@hirola.de">E-Mail<a>.
 
 ## Links
