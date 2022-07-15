@@ -2,6 +2,7 @@ package de.hirola.adroles.data.service;
 
 import com.imperva.ddc.core.query.*;
 import com.imperva.ddc.service.DirectoryConnectorService;
+import com.vaadin.flow.component.UI;
 import de.hirola.adroles.data.entity.ActiveDirectory;
 import de.hirola.adroles.data.entity.DomainController;
 import de.hirola.adroles.data.repository.*;
@@ -35,7 +36,6 @@ public class ConnectionSettingsService {
         } else {
             activeDirectory = new ActiveDirectory();
         }
-        return;
     }
 
     public ActiveDirectory getActiveDirectory() {
@@ -63,14 +63,14 @@ public class ConnectionSettingsService {
             return;
         }
         if (activeDirectory == null) {
-            String errorMessage = "A connection is not possible. No Active Directory has been configured.";
+            String errorMessage = UI.getCurrent().getTranslation("error.domain.connection.ad.empty");
             logger.debug(errorMessage);
             throw new ConnectException(errorMessage);
         }
         // get the list of dc
         final List<DomainController> domainControllers = activeDirectory.getServers();
         if (domainControllers.isEmpty()) {
-            String errorMessage = "A connection is not possible. No Active Directory has been configured.";
+            String errorMessage = UI.getCurrent().getTranslation("error.domain.connection.dc.empty");
             logger.debug(errorMessage);
             throw new ConnectException(errorMessage);
         }

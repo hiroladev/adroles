@@ -1,3 +1,14 @@
+/*
+ * *
+ *  * Copyright 2022 by Michael Schmidt, Hirola Consulting
+ *  * This software us licensed under the AGPL-3.0 or later.
+ *  *
+ *  *
+ *  * @author Michael Schmidt (Hirola)
+ *  * @since v0.1
+ *
+ */
+
 package de.hirola.adroles.views.settings;
 
 import com.vaadin.flow.component.Component;
@@ -9,6 +20,15 @@ import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.router.RouterLink;
 
+/**
+ * Copyright 2022 by Michael Schmidt, Hirola Consulting
+ * This software us licensed under the AGPL-3.0 or later.
+ *
+ * The tabs for all setting dialogs.
+ *
+ * @author Michael Schmidt (Hirola)
+ * @since v0.1
+ */
 public final class SettingsTabBar {
 
     public static Tabs getTabs(int selectedIndex) {
