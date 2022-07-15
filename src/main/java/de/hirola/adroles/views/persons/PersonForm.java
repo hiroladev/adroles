@@ -1,4 +1,4 @@
-package de.hirola.adroles.views.list;
+package de.hirola.adroles.views.persons;
 
 import de.hirola.adroles.data.entity.Company;
 import de.hirola.adroles.data.entity.Person;

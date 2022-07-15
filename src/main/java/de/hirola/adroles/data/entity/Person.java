@@ -4,6 +4,7 @@ import de.hirola.adroles.data.AbstractEntity;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
+import java.time.LocalDate;
 import java.util.*;
 
 /**
@@ -34,6 +35,8 @@ public class Person extends AbstractEntity {
     @OneToMany(orphanRemoval = true)
     @JoinColumn(name = "person_id")
     private List<ADAccount> adAccounts = new LinkedList<>();
+
+    private LocalDate entryDate, exitDate;
 
     public List<ADAccount> getADAccounts() {
         return adAccounts;

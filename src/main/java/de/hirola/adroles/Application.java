@@ -3,10 +3,12 @@ package de.hirola.adroles;
 import com.vaadin.flow.component.dependency.NpmPackage;
 import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.server.PWA;
-import com.vaadin.flow.theme.Theme;
+import de.hirola.adroles.util.SimpleI18NProvider;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
+
+import static java.lang.System.setProperty;
 
 /**
  * The entry point of the Spring Boot application.
@@ -18,6 +20,7 @@ import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
 public class Application extends SpringBootServletInitializer implements AppShellConfigurator {
 
     public static void main(String[] args) {
+        setProperty("vaadin.i18n.provider", SimpleI18NProvider.class.getName()); // initialize localization
         SpringApplication.run(Application.class, args);
     }
 

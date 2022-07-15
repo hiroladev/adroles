@@ -1,4 +1,4 @@
-package de.hirola.adroles.views.list;
+package de.hirola.adroles.views.persons;
 
 import de.hirola.adroles.data.entity.Person;
 import de.hirola.adroles.data.service.ADRolesService;
@@ -23,13 +23,13 @@ import javax.annotation.security.PermitAll;
 @Route(value="", layout = MainLayout.class)
 @PageTitle("Persons | AD-Roles")
 @PermitAll
-public class ListView extends VerticalLayout {
+public class PersonListView extends VerticalLayout {
     Grid<Person> grid = new Grid<>(Person.class);
     TextField filterText = new TextField();
     PersonForm form;
     ADRolesService service;
 
-    public ListView(ADRolesService service) {
+    public PersonListView(ADRolesService service) {
         this.service = service;
         addClassName("list-view");
         setSizeFull();
@@ -56,7 +56,7 @@ public class ListView extends VerticalLayout {
     }
 
     private void configureGrid() {
-        grid.addClassNames("contact-grid");
+        grid.addClassNames("person-grid");
         grid.setSizeFull();
         grid.setColumns("firstName", "lastName", "emailAddress");
         //grid.addColumn(person -> person.getStatus().getName()).setHeader("Status");
@@ -70,10 +70,10 @@ public class ListView extends VerticalLayout {
         filterText.setValueChangeMode(ValueChangeMode.LAZY);
         filterText.addValueChangeListener(e -> updateList());
 
-        Button addContactButton = new Button("Add contact");
-        addContactButton.addClickListener(click -> addContact());
+        Button addPersonButton = new Button(getTranslation("listview.addPerson"));
+        addPersonButton.addClickListener(click -> addContact());
 
-        HorizontalLayout toolbar = new HorizontalLayout(filterText, addContactButton);
+        HorizontalLayout toolbar = new HorizontalLayout(filterText, addPersonButton);
         toolbar.addClassName("toolbar");
         return toolbar;
     }

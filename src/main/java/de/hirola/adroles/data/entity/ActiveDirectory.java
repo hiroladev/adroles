@@ -4,7 +4,9 @@ import de.hirola.adroles.data.AbstractEntity;
 
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
-import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
@@ -15,35 +17,62 @@ import javax.validation.constraints.NotBlank;
  * @author Michael Schmidt (Hirola)
  * @since v0.1
  */
-
 @Entity
 public class ActiveDirectory extends AbstractEntity {
-    @NotBlank
-    private String name;
-    private String server;
-    private int port;
+    @NotEmpty
+    private String domainName;
+    @NotEmpty
+    private String connectionUserName;
+    @NotEmpty
+    private String connectionPassword;
+    @OneToMany(mappedBy = "activeDirectory")
+    private List<DomainController> servers = new ArrayList<>();
 
-    public String getName() {
-        return name;
+    public String getDomainName() {
+        return domainName;
+    }
+    public void setDomainName(String domainName) {
+        this.domainName = domainName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public String getConnectionUserName() {
+        return connectionUserName;
     }
 
-    public String getServer() {
-        return server;
+    /**
+     * Set the username for the connection to the Active Directory.
+     * <P>The username can be specified as follows:</P>
+     * <UL>
+     *     <LI>DOMAIN\\sAMAccountName</LI>
+     *     <LI>Distinguished Name</LI>
+     * </UL>
+     *
+     * @param userName for the connection
+     */
+    public void setConnectionUserName(String userName) {
+        this.connectionUserName = userName;
     }
 
-    public void setServer(String server) {
-        this.server = server;
+    public String getEncryptedConnectionPassword() {
+        return connectionPassword;
     }
 
-    public int getPort() {
-        return port;
+    public void setEncryptedConnectionPassword(String password) {
+        connectionPassword = password;
+    }
+    public List<DomainController> getServers() {
+        return servers;
+    }
+    public void setServers(List<DomainController> servers) {
+        this.servers = servers;
     }
 
-    public void setPort(int port) {
-        this.port = port;
+    public void addServer(DomainController domainController) {
+        if (!servers.contains(domainController)) {
+            servers.add(domainController);
+        }
+    }
+    public void removeServer(DomainController domainController){
+        servers.remove(domainController);
     }
 }

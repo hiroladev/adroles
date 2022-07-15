@@ -1,21 +1,22 @@
-package de.hirola.adroles.views;
+package de.hirola.adroles.views.organizations;
 
-import de.hirola.adroles.data.service.ADRolesService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import de.hirola.adroles.data.service.ADRolesService;
+import de.hirola.adroles.views.MainLayout;
 
 import javax.annotation.security.PermitAll;
 
-@Route(value = "dashboard", layout = MainLayout.class)
-@PageTitle("Dashboard | AD-Roles")
+@Route(value = "organizations", layout = MainLayout.class)
+@PageTitle("Organizations | AD-Roles")
 @PermitAll
-public class DashboardView extends VerticalLayout {
+public class OrganizationsView extends VerticalLayout {
     private final ADRolesService service;
 
-    public DashboardView(ADRolesService service) {
+    public OrganizationsView(ADRolesService service) {
         this.service = service;
         addClassName("dashboard-view");
         setDefaultHorizontalComponentAlignment(Alignment.CENTER);
