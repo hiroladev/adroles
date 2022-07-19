@@ -2,6 +2,7 @@ package de.hirola.adroles.views.settings;
 
 import com.vaadin.flow.component.ClickEvent;
 import com.vaadin.flow.component.ComponentEventListener;
+import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -13,6 +14,7 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.DatabaseConfiguration;
 import de.hirola.adroles.data.service.DatabaseConfigurationService;
 import de.hirola.adroles.views.MainLayout;
@@ -37,7 +39,7 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
         databaseConfiguration = new DatabaseConfiguration(); //TODO: load
         addClassName("dashboard-view");
         setDefaultHorizontalComponentAlignment(Alignment.START);
-        add(SettingsTabBar.getTabs(2));
+        add(SettingsTabBar.getTabs(3));
         addComponents();
     }
 
@@ -49,6 +51,7 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
 
         TextField configurationNameTextField = new TextField();
         configurationNameTextField.setLabel(getTranslation("database.configuration.name"));
+        configurationNameTextField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
         databaseConfigurationBinder
                 .forField(configurationNameTextField)
                 .withValidator(name -> name.length() > 0, getTranslation("error.input.name.empty"))
@@ -58,6 +61,7 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
         TextField jdbcDriverTextField = new TextField();
         jdbcDriverTextField.setLabel(getTranslation("database.configuration.jdbcDriver"));
         jdbcDriverTextField.setPlaceholder(getTranslation("database.configuration.jdbcDriver.placeholder"));
+        jdbcDriverTextField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
         databaseConfigurationBinder
                 .forField(jdbcDriverTextField)
                 .withValidator(jdbcDriverString -> jdbcDriverString.length() > 0, getTranslation("error.input.jdbcDriver.empty"))
@@ -67,6 +71,7 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
         TextField jdbcURLTextField = new TextField();
         jdbcURLTextField.setLabel(getTranslation("database.configuration.jdbcURL"));
         jdbcURLTextField.setPlaceholder(getTranslation("database.configuration.jdbcURL.placeholder"));
+        jdbcURLTextField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
         databaseConfigurationBinder
                 .forField(jdbcURLTextField)
                 .withValidator(jdbcDriverString -> jdbcDriverString.length() > 0, getTranslation("error.input.jdbcDriver.empty"))
@@ -75,6 +80,7 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
 
         TextField usernameTextField = new TextField();
         usernameTextField.setLabel(getTranslation("database.configuration.username"));
+        usernameTextField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
         databaseConfigurationBinder
                 .forField(usernameTextField)
                 .bind(DatabaseConfiguration::getUsername, DatabaseConfiguration::setUsername);
@@ -82,17 +88,20 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
 
         PasswordField passwordField = new PasswordField();
         passwordField.setLabel(getTranslation("database.configuration.password"));
+        passwordField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
         databaseConfigurationBinder
                 .forField(passwordField)
                 .bind(DatabaseConfiguration::getPassword, DatabaseConfiguration::setPassword);
         add(passwordField);
 
         saveButton = new Button(getTranslation("save"));
+        saveButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveButton.addClickListener(this);
         add(saveButton);
 
         verifyButton = new Button(getTranslation("verify"));
+        verifyButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
         verifyButton.addClickListener(this);
         add(verifyButton);
 

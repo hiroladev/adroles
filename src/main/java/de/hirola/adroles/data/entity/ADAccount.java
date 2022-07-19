@@ -5,7 +5,7 @@ import de.hirola.adroles.data.AbstractEntity;
 import javax.persistence.Entity;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
 
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
@@ -22,30 +22,22 @@ import javax.validation.constraints.NotBlank;
 
 @Entity
 public class ADAccount extends AbstractEntity {
-    @NotBlank
-    private String name;
-    @NotBlank
-    private String objectSID;
-    @NotBlank
+    @NotEmpty
+    private String logonName;
+    @NotEmpty
     private String distinguishedName;
+    private boolean enabled;
+    private boolean passwordNeverExpires;
     @ManyToOne
     @JoinColumn(name = "person_id")
     private Person person;
 
-    public String getName() {
-        return name;
+    public String getLogonName() {
+        return logonName;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getObjectSID() {
-        return objectSID;
-    }
-
-    public void setObjectSID(String objectSID) {
-        this.objectSID = objectSID;
+    public void setLogonName(String logonName) {
+        this.logonName = logonName;
     }
 
     public String getDistinguishedName() {
@@ -54,6 +46,22 @@ public class ADAccount extends AbstractEntity {
 
     public void setDistinguishedName(String distinguishedName) {
         this.distinguishedName = distinguishedName;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public boolean isPasswordNeverExpires() {
+        return passwordNeverExpires;
+    }
+
+    public void setPasswordNeverExpires(boolean passwordNeverExpires) {
+        this.passwordNeverExpires = passwordNeverExpires;
     }
 
     public Person getPerson() {

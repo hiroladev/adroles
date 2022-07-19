@@ -1,7 +1,12 @@
 package de.hirola.adroles.views.persons;
 
+import com.vaadin.flow.component.Unit;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.textfield.TextArea;
+import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Person;
-import de.hirola.adroles.data.service.ADRolesService;
+import de.hirola.adroles.data.service.IdentityService;
 import de.hirola.adroles.views.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
@@ -12,34 +17,42 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.PageTitle;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
 
 import javax.annotation.security.PermitAll;
 
-
-@Component
-@Scope("prototype")
-@Route(value="", layout = MainLayout.class)
+@Route(value="persons", layout = MainLayout.class)
 @PageTitle("Persons | AD-Roles")
 @PermitAll
 public class PersonListView extends VerticalLayout {
-    Grid<Person> grid = new Grid<>(Person.class);
-    TextField filterText = new TextField();
-    PersonForm form;
-    ADRolesService service;
+    private PersonForm form;
+    private final Grid<Person> grid = new Grid<>(Person.class);
+    private TextField filterTextField;
+    private final IdentityService service;
 
-    public PersonListView(ADRolesService service) {
+    public PersonListView(IdentityService service) {
         this.service = service;
         addClassName("list-view");
         setSizeFull();
-        configureGrid();
+        addComponents();
+        updateList();
+        closeForm();
+    }
 
-        form = new PersonForm(service.findAllCompanies(), service.findAllStatuses());
+    private void addComponents() {
+
+        grid.addClassNames("person-grid");
+        grid.setSizeFull();
+        grid.setColumns("firstName", "lastName", "emailAddress");
+        //grid.addColumn(person -> person.getStatus().getName()).setHeader("Status");
+        //grid.addColumn(person -> person.getCompany().getName()).setHeader("Company");
+        grid.getColumns().forEach(col -> col.setAutoWidth(true));
+        grid.asSingleSelect().addValueChangeListener(event -> editPerson(event.getValue()));
+
+        form = new PersonForm();
         form.setWidth("25em");
-        form.addListener(PersonForm.SaveEvent.class, this::saveContact);
-        form.addListener(PersonForm.DeleteEvent.class, this::deleteContact);
-        form.addListener(PersonForm.CloseEvent.class, e -> closeEditor());
+        form.addListener(PersonForm.SaveEvent.class, this::savePerson);
+        form.addListener(PersonForm.DeleteEvent.class, this::deletePerson);
+        form.addListener(PersonForm.CloseEvent.class, event -> closeForm());
 
         FlexLayout content = new FlexLayout(grid, form);
         content.setFlexGrow(2, grid);
@@ -48,72 +61,91 @@ public class PersonListView extends VerticalLayout {
         content.addClassNames("content", "gap-m");
         content.setSizeFull();
 
-        add(getToolbar(), content);
-        updateList();
-        closeEditor();
-        grid.asSingleSelect().addValueChangeListener(event ->
-            editContact(event.getValue()));
-    }
+        filterTextField = new TextField();
+        filterTextField.setPlaceholder(getTranslation("personListView.searchFilter"));
+        filterTextField.setClearButtonVisible(true);
+        filterTextField.setValueChangeMode(ValueChangeMode.LAZY);
+        filterTextField.addValueChangeListener(e -> updateList());
 
-    private void configureGrid() {
-        grid.addClassNames("person-grid");
-        grid.setSizeFull();
-        grid.setColumns("firstName", "lastName", "emailAddress");
-        //grid.addColumn(person -> person.getStatus().getName()).setHeader("Status");
-        //grid.addColumn(person -> person.getCompany().getName()).setHeader("Company");
-        grid.getColumns().forEach(col -> col.setAutoWidth(true));
-    }
+        Button addPersonButton = new Button(getTranslation("personListView.addPerson"));
+        addPersonButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+        addPersonButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+        addPersonButton.addClickListener(click -> addPerson());
 
-    private HorizontalLayout getToolbar() {
-        filterText.setPlaceholder("Filter by name...");
-        filterText.setClearButtonVisible(true);
-        filterText.setValueChangeMode(ValueChangeMode.LAZY);
-        filterText.addValueChangeListener(e -> updateList());
+        //TODO: enable / disable import by config
+        Button importButton = new Button(getTranslation("personListView.importFromActiveDirectory"));
+        importButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        importButton.addClickListener(click -> {
+            if (service.countPersons() > 0) {
+                // data can be override
+                Dialog dialog = new Dialog();
+                dialog.setHeaderTitle(getTranslation("personListView.importFromActiveDirectory.dialog.title"));
 
-        Button addPersonButton = new Button(getTranslation("listview.addPerson"));
-        addPersonButton.addClickListener(click -> addContact());
+                TextArea messageArea =
+                        new TextArea(getTranslation("personListView.importFromActiveDirectory.dialog.message"));
 
-        HorizontalLayout toolbar = new HorizontalLayout(filterText, addPersonButton);
+                Button okButton = new Button("Ok", (clickEvent) -> importPersons());
+                okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+                okButton.getStyle().set("margin-right", "auto");
+
+                Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
+                cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+                dialog.add(messageArea);
+                dialog.getFooter().add(okButton);
+                dialog.getFooter().add(cancelButton);
+
+                dialog.open();
+            } else {
+                importPersons();
+            }
+        });
+
+        HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addPersonButton, importButton);
         toolbar.addClassName("toolbar");
-        return toolbar;
+
+        add(toolbar, content);
     }
 
-    private void saveContact(PersonForm.SaveEvent event) {
-        service.savePerson(event.getContact());
+    private void savePerson(PersonForm.SaveEvent event) {
+        service.savePerson(event.getPerson());
         updateList();
-        closeEditor();
+        closeForm();
     }
 
-    private void deleteContact(PersonForm.DeleteEvent event) {
-        service.deletePerson(event.getContact());
+    private void deletePerson(PersonForm.DeleteEvent event) {
+        service.deletePerson(event.getPerson());
         updateList();
-        closeEditor();
+        closeForm();
     }
 
-    public void editContact(Person contact) {
+    public void editPerson(Person contact) {
         if (contact == null) {
-            closeEditor();
+            closeForm();
         } else {
-            form.setContact(contact);
+            form.setPerson(contact);
             form.setVisible(true);
             addClassName("editing");
         }
     }
 
-    void addContact() {
+    private void addPerson() {
         grid.asSingleSelect().clear();
-        editContact(new Person());
+        editPerson(new Person());
     }
 
-    private void closeEditor() {
-        form.setContact(null);
-        form.setVisible(false);
-        removeClassName("editing");
+    private void importPersons() {
+        service.importPersonsFromAD();
+        updateList();
     }
 
     private void updateList() {
-        grid.setItems(service.findAllPersons(filterText.getValue()));
+        grid.setItems(service.findAllPersons(filterTextField.getValue()));
     }
 
-
+    private void closeForm() {
+        form.setPerson(null);
+        form.setVisible(false);
+        removeClassName("editing");
+    }
 }

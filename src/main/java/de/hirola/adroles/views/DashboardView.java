@@ -1,30 +1,22 @@
 package de.hirola.adroles.views;
 
-import de.hirola.adroles.data.service.ADRolesService;
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import de.hirola.adroles.data.service.IdentityService;
 
 import javax.annotation.security.PermitAll;
 
-@Route(value = "dashboard", layout = MainLayout.class)
+@Route(value = "", layout = MainLayout.class) // value = "" -> start page
 @PageTitle("Dashboard | AD-Roles")
 @PermitAll
 public class DashboardView extends VerticalLayout {
-    private final ADRolesService service;
+    private final IdentityService service;
 
-    public DashboardView(ADRolesService service) {
+    public DashboardView(IdentityService service) {
         this.service = service;
         addClassName("dashboard-view");
         setDefaultHorizontalComponentAlignment(Alignment.CENTER);
         //add(getContactStats(), getCompaniesChart());
-    }
-
-    private Component getContactStats() {
-        Span stats = new Span(service.countPersons() + " contacts");
-        stats.addClassNames("text-xl", "mt-m");
-        return stats;
     }
 }

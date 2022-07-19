@@ -3,7 +3,7 @@ package de.hirola.adroles.data.entity;
 import de.hirola.adroles.data.AbstractEntity;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -20,13 +20,14 @@ import java.util.*;
 
 @Entity
 public class Person extends AbstractEntity {
-    @NotBlank
+    @NotEmpty
+    private String centralAccountName; // used the first logon name
     private String lastName;
     private String firstName;
     private String emailAddress;
     private String phoneNumber;
     private String mobilePhoneNumber;
-    private String office;
+    private String department;
     @ManyToOne
     @JoinColumn(name = "organisation_unit_id")
     private OrganisationUnit organisationUnit;
@@ -54,6 +55,16 @@ public class Person extends AbstractEntity {
 
     private void removeADAccount(ADAccount account) {
         adAccounts.remove(account);
+    }
+
+
+
+    public String getCentralAccountName() {
+        return centralAccountName;
+    }
+
+    public void setCentralAccountName(String centralAccountName) {
+        this.centralAccountName = centralAccountName;
     }
 
     public String getLastName() {
@@ -96,12 +107,12 @@ public class Person extends AbstractEntity {
         this.mobilePhoneNumber = mobilePhoneNumber;
     }
 
-    public String getOffice() {
-        return office;
+    public String getDepartment() {
+        return department;
     }
 
-    public void setOffice(String office) {
-        this.office = office;
+    public void setDepartment(String department) {
+        this.department = department;
     }
 
     public OrganisationUnit getOrganisationUnit() {
@@ -110,5 +121,21 @@ public class Person extends AbstractEntity {
 
     public void setOrganisationUnit(OrganisationUnit organisationUnit) {
         this.organisationUnit = organisationUnit;
+    }
+
+    public LocalDate getEntryDate() {
+        return entryDate;
+    }
+
+    public void setEntryDate(LocalDate entryDate) {
+        this.entryDate = entryDate;
+    }
+
+    public LocalDate getExitDate() {
+        return exitDate;
+    }
+
+    public void setExitDate(LocalDate exitDate) {
+        this.exitDate = exitDate;
     }
 }

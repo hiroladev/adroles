@@ -1,5 +1,8 @@
 package de.hirola.adroles.data.entity;
 
+import de.hirola.adroles.data.AbstractEntity;
+
+import javax.persistence.Entity;
 import javax.validation.constraints.NotEmpty;
 
 /**
@@ -11,7 +14,8 @@ import javax.validation.constraints.NotEmpty;
  * @author Michael Schmidt (Hirola)
  * @since v0.1
  */
-public class DatabaseConfiguration {
+@Entity
+public class DatabaseConfiguration extends AbstractEntity {
     @NotEmpty
     private String name;
     @NotEmpty

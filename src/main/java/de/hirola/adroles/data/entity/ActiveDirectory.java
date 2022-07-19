@@ -1,8 +1,10 @@
 package de.hirola.adroles.data.entity;
 
 import de.hirola.adroles.data.AbstractEntity;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.OneToMany;
 import javax.validation.constraints.NotEmpty;
 import java.util.ArrayList;
@@ -22,17 +24,43 @@ public class ActiveDirectory extends AbstractEntity {
     @NotEmpty
     private String domainName;
     @NotEmpty
+    private String ipAddress;
+    private double port;
+    private boolean useSecureConnection;
+    @NotEmpty
     private String connectionUserName;
     @NotEmpty
     private String connectionPassword;
-    @OneToMany(mappedBy = "activeDirectory")
-    private List<DomainController> servers = new ArrayList<>();
 
     public String getDomainName() {
         return domainName;
     }
     public void setDomainName(String domainName) {
         this.domainName = domainName;
+    }
+
+    public String getIPAddress() {
+        return ipAddress;
+    }
+
+    public void setIPAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    public double getPort() {
+        return port;
+    }
+
+    public void setPort(double port) {
+        this.port = port;
+    }
+
+    public boolean useSecureConnection() {
+        return useSecureConnection;
+    }
+
+    public void setUseSecureConnection(boolean useSecureConnection) {
+        this.useSecureConnection = useSecureConnection;
     }
 
     public String getConnectionUserName() {
@@ -60,19 +88,5 @@ public class ActiveDirectory extends AbstractEntity {
     public void setEncryptedConnectionPassword(String password) {
         connectionPassword = password;
     }
-    public List<DomainController> getServers() {
-        return servers;
-    }
-    public void setServers(List<DomainController> servers) {
-        this.servers = servers;
-    }
 
-    public void addServer(DomainController domainController) {
-        if (!servers.contains(domainController)) {
-            servers.add(domainController);
-        }
-    }
-    public void removeServer(DomainController domainController){
-        servers.remove(domainController);
-    }
 }

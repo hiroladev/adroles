@@ -1,14 +1,11 @@
 package de.hirola.adroles.views.persons;
 
-import de.hirola.adroles.data.entity.Company;
 import de.hirola.adroles.data.entity.Person;
-import de.hirola.adroles.data.entity.Status;
 import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.EmailField;
@@ -18,98 +15,84 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.shared.Registration;
 
-import java.util.List;
-
 public class PersonForm extends FormLayout {
-  private Person contact;
+  private Person person;
+  private  final Binder<Person> binder = new BeanValidationBinder<>(Person.class);
+  private final TextField firstName = new TextField(getTranslation("person.firstName"));
+  private final TextField lastName = new TextField(getTranslation("person.lastName"));
+  private final EmailField emailAddress = new EmailField(getTranslation("emailAddress"));
+  private Button saveButton;
 
-  TextField firstName = new TextField("First name");
-  TextField lastName = new TextField("Last name");
-  EmailField email = new EmailField("Email");
-  ComboBox<Status> status = new ComboBox<>("Status");
-  ComboBox<Company> company = new ComboBox<>("Company");
-  Binder<Person> binder = new BeanValidationBinder<de.hirola.adroles.data.entity.Person>(Person.class);
-
-  Button save = new Button("Save");
-  Button delete = new Button("Delete");
-  Button close = new Button("Cancel");
-
-  public PersonForm(List<Company> companies, List<Status> statuses) {
-    addClassName("contact-form");
-    binder.bindInstanceFields(this);
-
-    company.setItems(companies);
-    company.setItemLabelGenerator(Company::getName);
-    status.setItems(statuses);
-    status.setItemLabelGenerator(Status::getName);
-    add(firstName,
-        lastName,
-        email,
-        company,
-        status,
-        createButtonsLayout()); 
+  public PersonForm() {
+    addClassName("person-form");
+    addComponents();
+    binder.bindInstanceFields(this); // text fields -> fields of a person
+    binder.addStatusChangeListener(event -> saveButton.setEnabled(binder.isValid()));
   }
 
-  private HorizontalLayout createButtonsLayout() {
-    save.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-    delete.addThemeVariants(ButtonVariant.LUMO_ERROR);
-    close.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+  private void addComponents() {
 
-    save.addClickShortcut(Key.ENTER);
-    close.addClickShortcut(Key.ESCAPE);
+    saveButton = new Button(getTranslation("save"));
+    saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+    saveButton.addClickShortcut(Key.ENTER);
+    saveButton.addClickListener(event -> validateAndSave());
 
-    save.addClickListener(event -> validateAndSave());
-    delete.addClickListener(event -> fireEvent(new DeleteEvent(this, contact)));
-    close.addClickListener(event -> fireEvent(new CloseEvent(this)));
+    Button deleteButton = new Button(getTranslation("delete"));
+    deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
+    deleteButton.addClickListener(event -> fireEvent(new DeleteEvent(this, person)));
 
+    Button closeButton = new Button(getTranslation("cancel"));
+    closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+    closeButton.addClickShortcut(Key.ESCAPE);
+    closeButton.addClickListener(event -> fireEvent(new CloseEvent(this)));
 
-    binder.addStatusChangeListener(e -> save.setEnabled(binder.isValid()));
+    HorizontalLayout buttonsLayout = new HorizontalLayout(saveButton, deleteButton, closeButton);
 
-    return new HorizontalLayout(save, delete, close); 
+    add(firstName, lastName, emailAddress, buttonsLayout);
   }
 
-  public void setContact(Person contact) {
-    this.contact = contact;
-    binder.readBean(contact);
+  public void setPerson(Person person) {
+    this.person = person;
+    binder.readBean(person);
   }
 
   private void validateAndSave() {
     try {
-      binder.writeBean(contact);
-      fireEvent(new SaveEvent(this, contact));
-    } catch (ValidationException e) {
-      e.printStackTrace();
+      binder.writeBean(person);
+      fireEvent(new SaveEvent(this, person));
+    } catch (ValidationException exception) {
+      exception.printStackTrace();
     }
   }
 
   // Events
-  public static abstract class ContactFormEvent extends ComponentEvent<PersonForm> {
-    private Person contact;
+  public static abstract class PersonFormEvent extends ComponentEvent<PersonForm> {
+    private final Person person;
 
-    protected ContactFormEvent(PersonForm source, Person contact) {
+    protected PersonFormEvent(PersonForm source, Person person) {
       super(source, false);
-      this.contact = contact;
+      this.person = person;
     }
 
-    public Person getContact() {
-      return contact;
-    }
-  }
-
-  public static class SaveEvent extends ContactFormEvent {
-    SaveEvent(PersonForm source, Person contact) {
-      super(source, contact);
+    public Person getPerson() {
+      return person;
     }
   }
 
-  public static class DeleteEvent extends ContactFormEvent {
-    DeleteEvent(PersonForm source, Person contact) {
-      super(source, contact);
+  public static class SaveEvent extends PersonFormEvent {
+    SaveEvent(PersonForm source, Person person) {
+      super(source, person);
+    }
+  }
+
+  public static class DeleteEvent extends PersonFormEvent {
+    DeleteEvent(PersonForm source, Person person) {
+      super(source, person);
     }
 
   }
 
-  public static class CloseEvent extends ContactFormEvent {
+  public static class CloseEvent extends PersonFormEvent {
     CloseEvent(PersonForm source) {
       super(source, null);
     }

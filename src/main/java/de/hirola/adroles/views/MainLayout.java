@@ -19,7 +19,7 @@ import de.hirola.adroles.views.adusers.ADUsersView;
 import de.hirola.adroles.views.organizations.OrganizationsView;
 import de.hirola.adroles.views.persons.PersonListView;
 import de.hirola.adroles.views.roles.RolesView;
-import de.hirola.adroles.views.settings.SettingsView;
+import de.hirola.adroles.views.settings.BasicSettingsView;
 
 public class MainLayout extends AppLayout {
     private final SecurityService securityService;
@@ -61,7 +61,7 @@ public class MainLayout extends AppLayout {
                 createTab(VaadinIcon.RECORDS, RolesView.class, getTranslation("roles")),
                 createTab(VaadinIcon.USER_STAR, ADUsersView.class, getTranslation("aduser")),
                 createTab(VaadinIcon.GROUP, ADGroupsView.class, getTranslation("adgroup")),
-                createTab(VaadinIcon.CONTROLLER, SettingsView.class, getTranslation("settings"))
+                createTab(VaadinIcon.CONTROLLER, BasicSettingsView.class, getTranslation("settings"))
         );
         tabs.setOrientation(Tabs.Orientation.VERTICAL);
         return tabs;
