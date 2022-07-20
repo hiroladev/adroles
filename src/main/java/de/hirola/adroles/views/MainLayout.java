@@ -18,7 +18,7 @@ import de.hirola.adroles.views.adgroups.ADGroupsView;
 import de.hirola.adroles.views.adusers.ADUsersView;
 import de.hirola.adroles.views.organizations.OrganizationsView;
 import de.hirola.adroles.views.persons.PersonListView;
-import de.hirola.adroles.views.roles.RolesView;
+import de.hirola.adroles.views.roles.RolesListView;
 import de.hirola.adroles.views.settings.BasicSettingsView;
 
 public class MainLayout extends AppLayout {
@@ -58,7 +58,7 @@ public class MainLayout extends AppLayout {
                 createTab(VaadinIcon.DASHBOARD, DashboardView.class, getTranslation("dashboard")),
                 createTab(VaadinIcon.USERS, PersonListView.class, getTranslation("persons")),
                 createTab(VaadinIcon.OFFICE, OrganizationsView.class, getTranslation("organizations")),
-                createTab(VaadinIcon.RECORDS, RolesView.class, getTranslation("roles")),
+                createTab(VaadinIcon.RECORDS, RolesListView.class, getTranslation("roles")),
                 createTab(VaadinIcon.USER_STAR, ADUsersView.class, getTranslation("aduser")),
                 createTab(VaadinIcon.GROUP, ADGroupsView.class, getTranslation("adgroup")),
                 createTab(VaadinIcon.CONTROLLER, BasicSettingsView.class, getTranslation("settings"))

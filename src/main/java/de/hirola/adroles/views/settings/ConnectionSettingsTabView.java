@@ -137,7 +137,7 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
                 Dialog dialog = new Dialog();
                 dialog.add(getTranslation("domain.connected"));
                 dialog.open();
-            } catch (ValidationException | ConnectException | GeneralSecurityException exception) {
+            } catch (ValidationException | ConnectException exception) {
                 Dialog dialog = new Dialog();
                 dialog.setHeaderTitle(getTranslation("error.domain.connection"));
                 dialog.add(exception.getMessage());

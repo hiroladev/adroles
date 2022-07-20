@@ -1,14 +1,9 @@
 package de.hirola.adroles.data.entity;
 
 import de.hirola.adroles.data.AbstractEntity;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.OneToMany;
 import javax.validation.constraints.NotEmpty;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting

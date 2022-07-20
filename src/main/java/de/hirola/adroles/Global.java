@@ -14,10 +14,10 @@ package de.hirola.adroles;
 public final class Global {
 
     public static final class ADAttributes {
-        public static String ACCOUNT_STATE = "userAccountControl";
+        public static final String ACCOUNT_STATE = "userAccountControl";
     }
 
     // TODO: set by user?
-    public static float DEFAULT_BUTTON_WIDTH = 200;
-    public static float DEFAULT_TEXT_FIELD_WIDTH = 400;
+    public static final float DEFAULT_BUTTON_WIDTH = 200;
+    public static final float DEFAULT_TEXT_FIELD_WIDTH = 400;
 }

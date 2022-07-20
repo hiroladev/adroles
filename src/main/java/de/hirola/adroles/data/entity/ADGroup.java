@@ -3,6 +3,7 @@ package de.hirola.adroles.data.entity;
 import de.hirola.adroles.data.AbstractEntity;
 
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ManyToMany;
 import javax.validation.constraints.NotBlank;
 import java.util.LinkedList;
@@ -23,7 +24,7 @@ public class ADGroup extends AbstractEntity {
     @NotBlank
     private String name;
 
-    @ManyToMany(mappedBy = "adGroups")
+    @ManyToMany(mappedBy = "adGroups", fetch= FetchType.EAGER)
     private final List<Role> roles = new LinkedList<>();
 }
 

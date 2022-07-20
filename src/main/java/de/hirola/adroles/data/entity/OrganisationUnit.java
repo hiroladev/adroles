@@ -1,7 +1,6 @@
 package de.hirola.adroles.data.entity;
 
 import de.hirola.adroles.data.AbstractEntity;
-import org.hibernate.annotations.Formula;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;

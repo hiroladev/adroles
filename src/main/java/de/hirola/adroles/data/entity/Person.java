@@ -31,7 +31,7 @@ public class Person extends AbstractEntity {
     @ManyToOne
     @JoinColumn(name = "organisation_unit_id")
     private OrganisationUnit organisationUnit;
-    @ManyToMany(mappedBy = "persons")
+    @ManyToMany(mappedBy = "persons", fetch=FetchType.EAGER)
     private final Set<Role> roles = new LinkedHashSet<>();
     @OneToMany(orphanRemoval = true)
     @JoinColumn(name = "person_id")

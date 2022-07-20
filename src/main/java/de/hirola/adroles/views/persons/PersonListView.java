@@ -6,6 +6,7 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.textfield.TextArea;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Person;
+import de.hirola.adroles.data.entity.Role;
 import de.hirola.adroles.data.service.IdentityService;
 import de.hirola.adroles.views.MainLayout;
 import com.vaadin.flow.component.button.Button;
@@ -25,7 +26,7 @@ import javax.annotation.security.PermitAll;
 @PermitAll
 public class PersonListView extends VerticalLayout {
     private PersonForm form;
-    private final Grid<Person> grid = new Grid<>(Person.class);
+    private final Grid<Person> grid = new Grid<>(Person.class, false);
     private TextField filterTextField;
     private final IdentityService service;
 
@@ -119,11 +120,11 @@ public class PersonListView extends VerticalLayout {
         closeForm();
     }
 
-    public void editPerson(Person contact) {
-        if (contact == null) {
+    public void editPerson(Person person) {
+        if (person == null) {
             closeForm();
         } else {
-            form.setPerson(contact);
+            form.setPerson(person);
             form.setVisible(true);
             addClassName("editing");
         }

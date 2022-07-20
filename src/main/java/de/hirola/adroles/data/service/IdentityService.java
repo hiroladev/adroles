@@ -11,6 +11,7 @@ import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.ADAccount;
 import de.hirola.adroles.data.entity.ActiveDirectory;
 import de.hirola.adroles.data.entity.Person;
+import de.hirola.adroles.data.entity.Role;
 import de.hirola.adroles.data.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,6 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 import java.net.ConnectException;
-import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -87,13 +87,15 @@ public class IdentityService {
 
     public void savePerson(Person person) {
         if (person == null) {
-            System.err.println("Person is null. Are you sure you have connected your form to the application?");
             return;
         }
         personRepository.save(person);
     }
 
     public void deletePerson(Person person) {
+        if (person == null) {
+            return;
+        }
         personRepository.delete(person);
     }
 
@@ -116,7 +118,7 @@ public class IdentityService {
     }
 
     public void verifyConnection(@NotNull ActiveDirectory activeDirectory)
-            throws ConnectException, GeneralSecurityException {
+            throws ConnectException {
         final Endpoint endpoint = new Endpoint();
         endpoint.setSecuredConnection(activeDirectory.useSecureConnection());
         endpoint.setPort((int) activeDirectory.getPort());

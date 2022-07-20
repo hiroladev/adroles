@@ -1,12 +1,10 @@
 package de.hirola.adroles.data.entity;
 
 import de.hirola.adroles.data.AbstractEntity;
+import org.springframework.context.annotation.Lazy;
 
-import javax.persistence.Entity;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToMany;
-import javax.validation.constraints.NotBlank;
+import javax.persistence.*;
+import javax.validation.constraints.NotEmpty;
 import java.util.*;
 
 /**
@@ -21,14 +19,16 @@ import java.util.*;
 
 @Entity
 public class Role extends AbstractEntity {
-    @NotBlank
+    @NotEmpty
     private String name;
-    @ManyToMany
+    private String description;
+    private boolean isAdminRole;
+    @ManyToMany(fetch= FetchType.EAGER)
     @JoinTable(name = "role_adgroup",
             joinColumns = { @JoinColumn(name = "role_id") },
             inverseJoinColumns = { @JoinColumn(name = "adgroup_id") })
     private Set<ADGroup> adGroups = new LinkedHashSet<>();
-    @ManyToMany
+    @ManyToMany(fetch= FetchType.EAGER)
     @JoinTable(name = "role_person",
             joinColumns = { @JoinColumn(name = "role_id") },
             inverseJoinColumns = { @JoinColumn(name = "person_id") })
@@ -56,6 +56,22 @@ public class Role extends AbstractEntity {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public boolean isAdminRole() {
+        return isAdminRole;
+    }
+
+    public void setAdminRole(boolean adminRole) {
+        isAdminRole = adminRole;
     }
 
     public Set<ADGroup> getADGroups() {
