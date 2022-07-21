@@ -43,18 +43,21 @@ public class RolesListView extends VerticalLayout {
         grid.addClassNames("roles-grid");
         grid.setSizeFull();
         grid.addColumn(Role::getName).setHeader(getTranslation("name"))
-                .setFooter(String.format(getTranslation("roles.sum") + ": %s", service.countRoles()));
-        grid.addColumn(Role::getDescription).setHeader(getTranslation("description"));
+                .setFooter(String.format(getTranslation("roles.sum") + ": %s", service.countRoles()))
+                .setSortable(true);
+        grid.addColumn(Role::getDescription).setHeader(getTranslation("description"))
+                .setSortable(true);
         grid.addColumn(role -> role.isAdminRole() ? getTranslation("yes") : getTranslation("no"))
-                .setHeader(getTranslation("roles.adminRole"));
+                .setHeader(getTranslation("adminRole"))
+                .setSortable(true);
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
         grid.asSingleSelect().addValueChangeListener(event -> editRole(event.getValue()));
 
         form = new RoleForm();
         form.setWidth("30em");
         form.addListener(RoleForm.SaveEvent.class, this::saveRole);
-        form.addListener(RoleForm.AddPersonsEvent.class, this::addPersons);
-        form.addListener(RoleForm.AddADGroupsEvent.class, this::addADGroups);
+        form.addListener(RoleForm.AssignPersonsEvent.class, this::addPersons);
+        form.addListener(RoleForm.AssignADGroupsEvent.class, this::addADGroups);
         form.addListener(RoleForm.DeleteEvent.class, this::deleteRole);
         form.addListener(RoleForm.CloseEvent.class, event -> closeForm());
 
@@ -66,27 +69,28 @@ public class RolesListView extends VerticalLayout {
         content.setSizeFull();
 
         filterTextField = new TextField();
-        filterTextField.setPlaceholder(getTranslation("rolesListView.searchFilter"));
+        filterTextField.setPlaceholder(getTranslation("searchFilter"));
         filterTextField.setClearButtonVisible(true);
         filterTextField.setValueChangeMode(ValueChangeMode.LAZY);
         filterTextField.addValueChangeListener(e -> updateList());
 
-        Button addPersonButton = new Button(getTranslation("rolesListView.addRole"));
+        Button addPersonButton = new Button(getTranslation("addRole"));
         addPersonButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
         addPersonButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
         addPersonButton.addClickListener(click -> addRole());
 
         // import Roles from JSON
-        Button importButton = new Button(getTranslation("rolesListView.importFromJSON"));
+        Button importButton = new Button(getTranslation("roles.importFromJSON"));
         importButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         importButton.addClickListener(click -> {
             if (service.countRoles() > 0) {
                 // data can be override
                 Dialog dialog = new Dialog();
-                dialog.setHeaderTitle(getTranslation("rolesListView.importFromJSON.dialog.title"));
+                dialog.setHeaderTitle(getTranslation("roles.importFromJSON.dialog.title"));
 
-                TextArea messageArea =
-                        new TextArea(getTranslation("rolesListView.importFromJSON.dialog.message"));
+                TextArea messageArea = new TextArea();
+                messageArea.setWidthFull();
+                messageArea.setValue(getTranslation("roles.importFromJSON.dialog.message"));
 
                 Button okButton = new Button("Ok", (clickEvent) -> importRoles());
                 okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
@@ -127,13 +131,13 @@ public class RolesListView extends VerticalLayout {
         closeForm();
     }
 
-    private void addPersons(RoleForm.AddPersonsEvent event) {
+    private void addPersons(RoleForm.AssignPersonsEvent event) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Add persons");
         dialog.open();
     }
 
-    private void addADGroups(RoleForm.AddADGroupsEvent event) {
+    private void addADGroups(RoleForm.AssignADGroupsEvent event) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Add groups");
         dialog.open();

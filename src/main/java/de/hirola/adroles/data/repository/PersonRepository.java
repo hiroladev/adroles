@@ -13,7 +13,8 @@ public interface PersonRepository extends JpaRepository<Person, Integer> {
 
     @Query("select p from Person p " +
         "where lower(p.firstName) like lower(concat('%', :searchTerm, '%')) " +
-        "or lower(p.lastName) like lower(concat('%', :searchTerm, '%'))")
+            "or lower(p.lastName) like lower(concat('%', :searchTerm, '%'))" +
+            "or lower(p.centralAccountName) like lower(concat('%', :searchTerm, '%'))")
     List<Person> search(@Param("searchTerm") String searchTerm);
 
     Optional<Person> findByAdAccounts_LogonName(@NonNull String logonName);

@@ -6,7 +6,6 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.textfield.TextArea;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Person;
-import de.hirola.adroles.data.entity.Role;
 import de.hirola.adroles.data.service.IdentityService;
 import de.hirola.adroles.views.MainLayout;
 import com.vaadin.flow.component.button.Button;
@@ -20,90 +19,103 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.PageTitle;
 
 import javax.annotation.security.PermitAll;
+import java.util.ArrayList;
+import java.util.List;
 
 @Route(value="persons", layout = MainLayout.class)
 @PageTitle("Persons | AD-Roles")
 @PermitAll
 public class PersonListView extends VerticalLayout {
-    private PersonForm form;
+    private final IdentityService service;
+    private final List<Person> selectedPersons = new ArrayList<>();
+    private PersonForm personForm;
+    private PersonAssignRoleForm assignRoleForm;
     private final Grid<Person> grid = new Grid<>(Person.class, false);
     private TextField filterTextField;
-    private final IdentityService service;
+    private Button deletePersonsButton;
 
     public PersonListView(IdentityService service) {
         this.service = service;
-        addClassName("list-view");
+        addClassName("persons-list-view");
         setSizeFull();
         addComponents();
         updateList();
-        closeForm();
+        closePersonForm();
+        closeAssignRolesForm();
     }
 
     private void addComponents() {
 
-        grid.addClassNames("person-grid");
-        grid.setSizeFull();
-        grid.setColumns("firstName", "lastName", "emailAddress");
-        //grid.addColumn(person -> person.getStatus().getName()).setHeader("Status");
-        //grid.addColumn(person -> person.getCompany().getName()).setHeader("Company");
-        grid.getColumns().forEach(col -> col.setAutoWidth(true));
-        grid.asSingleSelect().addValueChangeListener(event -> editPerson(event.getValue()));
-
-        form = new PersonForm();
-        form.setWidth("25em");
-        form.addListener(PersonForm.SaveEvent.class, this::savePerson);
-        form.addListener(PersonForm.DeleteEvent.class, this::deletePerson);
-        form.addListener(PersonForm.CloseEvent.class, event -> closeForm());
-
-        FlexLayout content = new FlexLayout(grid, form);
-        content.setFlexGrow(2, grid);
-        content.setFlexGrow(1, form);
-        content.setFlexShrink(0, form);
-        content.addClassNames("content", "gap-m");
-        content.setSizeFull();
-
         filterTextField = new TextField();
-        filterTextField.setPlaceholder(getTranslation("personListView.searchFilter"));
+        filterTextField.setPlaceholder(getTranslation("searchFilter"));
         filterTextField.setClearButtonVisible(true);
         filterTextField.setValueChangeMode(ValueChangeMode.LAZY);
         filterTextField.addValueChangeListener(e -> updateList());
 
-        Button addPersonButton = new Button(getTranslation("personListView.addPerson"));
+        Button addPersonButton = new Button(getTranslation("addPerson"));
         addPersonButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
         addPersonButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
         addPersonButton.addClickListener(click -> addPerson());
 
+        deletePersonsButton = new Button(getTranslation("deletePersons"));
+        deletePersonsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        deletePersonsButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+        deletePersonsButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+        deletePersonsButton.addClickListener(click -> deletePersons());
+        deletePersonsButton.setEnabled(false);
+
         //TODO: enable / disable import by config
-        Button importButton = new Button(getTranslation("personListView.importFromActiveDirectory"));
+        Button importButton = new Button(getTranslation("persons.importFromActiveDirectory"));
         importButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        importButton.addClickListener(click -> {
-            if (service.countPersons() > 0) {
-                // data can be override
-                Dialog dialog = new Dialog();
-                dialog.setHeaderTitle(getTranslation("personListView.importFromActiveDirectory.dialog.title"));
+        importButton.addClickListener(click -> importPersons());
 
-                TextArea messageArea =
-                        new TextArea(getTranslation("personListView.importFromActiveDirectory.dialog.message"));
+        HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addPersonButton, deletePersonsButton, importButton);
+        toolbar.addClassName("toolbar");
 
-                Button okButton = new Button("Ok", (clickEvent) -> importPersons());
-                okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-                okButton.getStyle().set("margin-right", "auto");
-
-                Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
-                cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-                dialog.add(messageArea);
-                dialog.getFooter().add(okButton);
-                dialog.getFooter().add(cancelButton);
-
-                dialog.open();
+        grid.addClassNames("person-grid");
+        grid.setSizeFull();
+        grid.addColumn(Person::getCentralAccountName)
+                .setHeader(getTranslation("centralAccountName"))
+                .setFooter(String.format(getTranslation("persons.sum") + ": %s", service.countPersons()))
+                .setSortable(true);
+        grid.addColumn(Person::getFirstName).setHeader(getTranslation("firstname"))
+                .setSortable(true);
+        grid.addColumn(Person::getLastName).setHeader(getTranslation("lastname"))
+                .setSortable(true);
+        grid.addColumn(Person::getDepartment).setHeader(getTranslation("department"))
+                .setSortable(true);
+        grid.addColumn(Person::getDescription).setHeader(getTranslation("description"))
+                .setSortable(true);
+        grid.getColumns().forEach(col -> col.setAutoWidth(true));
+        grid.setSelectionMode(Grid.SelectionMode.MULTI);
+        grid.addItemClickListener(event -> editPerson(event.getItem()));
+        grid.addSelectionListener(selection -> {
+            selectedPersons.clear();
+            if (selection.getAllSelectedItems().size() == 0) {
+                deletePersonsButton.setEnabled(false);
             } else {
-                importPersons();
+                deletePersonsButton.setEnabled(true);
+                selectedPersons.addAll(selection.getAllSelectedItems());
             }
         });
 
-        HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addPersonButton, importButton);
-        toolbar.addClassName("toolbar");
+
+        personForm = new PersonForm();
+        personForm.setWidthFull();
+        personForm.addListener(PersonForm.SaveEvent.class, this::savePerson);
+        personForm.addListener(PersonForm.AssignRolesEvent.class, this::addRoles);
+        personForm.addListener(PersonForm.DeleteEvent.class, this::deletePerson);
+        personForm.addListener(PersonForm.CloseEvent.class, event -> closePersonForm());
+
+        assignRoleForm = new PersonAssignRoleForm();
+        assignRoleForm.setWidthFull();
+
+        FlexLayout content = new FlexLayout(grid, personForm, assignRoleForm);
+        content.setFlexGrow(2, grid);
+        content.setFlexGrow(1, personForm, assignRoleForm);
+        content.setFlexShrink(0, personForm, assignRoleForm);
+        content.addClassNames("content", "gap-m");
+        content.setSizeFull();
 
         add(toolbar, content);
     }
@@ -111,21 +123,48 @@ public class PersonListView extends VerticalLayout {
     private void savePerson(PersonForm.SaveEvent event) {
         service.savePerson(event.getPerson());
         updateList();
-        closeForm();
+        closePersonForm();
+    }
+
+    private void deletePersons() {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle(getTranslation("question.delete"));
+
+        Button okButton = new Button("Ok", clickEvent -> {
+            service.deletePersons(selectedPersons);
+            updateList();
+            selectedPersons.clear();
+            deletePersonsButton.setEnabled(false);
+            dialog.close();
+        });
+        okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+        okButton.getStyle().set("margin-right", "auto");
+
+        Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> {
+            grid.deselectAll();
+            dialog.close();
+        });
+        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        dialog.getFooter().add(okButton);
+        dialog.getFooter().add(cancelButton);
+
+        dialog.open();
+
     }
 
     private void deletePerson(PersonForm.DeleteEvent event) {
         service.deletePerson(event.getPerson());
         updateList();
-        closeForm();
+        closePersonForm();
     }
 
     public void editPerson(Person person) {
         if (person == null) {
-            closeForm();
+            closePersonForm();
         } else {
-            form.setPerson(person);
-            form.setVisible(true);
+            personForm.setPerson(person);
+            personForm.setVisible(true);
             addClassName("editing");
         }
     }
@@ -136,17 +175,68 @@ public class PersonListView extends VerticalLayout {
     }
 
     private void importPersons() {
-        service.importPersonsFromAD();
-        updateList();
+        if (service.countPersons() > 0) {
+            // data can be override
+            Dialog dialog = new Dialog();
+            dialog.setHeaderTitle(getTranslation("persons.importFromActiveDirectory.dialog.title"));
+
+            TextArea messageArea = new TextArea();
+            messageArea.setWidthFull();
+            messageArea.setValue(getTranslation("persons.importFromActiveDirectory.dialog.message"));
+
+            Button okButton = new Button("Ok", clickEvent -> {
+                service.importPersonsFromAD(false);
+                updateList();
+                dialog.close();
+            });
+            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+            okButton.getStyle().set("margin-right", "auto");
+
+            Button partiallyButton = new Button(getTranslation("persons.importFromActiveDirectory.missing"), clickEvent -> {
+                service.importPersonsFromAD(true);
+                updateList();
+                dialog.close();
+            });
+            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+            okButton.getStyle().set("margin-right", "auto");
+
+            Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
+            cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+            dialog.add(messageArea);
+            dialog.getFooter().add(okButton);
+            dialog.getFooter().add(partiallyButton);
+            dialog.getFooter().add(cancelButton);
+
+            dialog.open();
+        } else {
+            service.importPersonsFromAD(false);
+            updateList();
+        }
+
+    }
+
+    private void addRoles(PersonForm.AssignRolesEvent event) {
+        closePersonForm();
+        assignRoleForm.setVisible(true);
+        assignRoleForm.setPerson(event.getPerson());
+        addClassName("editing");
     }
 
     private void updateList() {
         grid.setItems(service.findAllPersons(filterTextField.getValue()));
     }
 
-    private void closeForm() {
-        form.setPerson(null);
-        form.setVisible(false);
+    private void closePersonForm() {
+        personForm.setPerson(null);
+        personForm.setVisible(false);
         removeClassName("editing");
     }
+
+    private void closeAssignRolesForm() {
+        assignRoleForm.setPerson(null);
+        assignRoleForm.setVisible(false);
+        removeClassName("editing");
+    }
+
 }

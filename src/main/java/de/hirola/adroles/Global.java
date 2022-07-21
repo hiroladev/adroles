@@ -15,6 +15,7 @@ public final class Global {
 
     public static final class ADAttributes {
         public static final String ACCOUNT_STATE = "userAccountControl";
+        public static final String DESCRIPTION = "description";
     }
 
     // TODO: set by user?

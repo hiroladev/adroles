@@ -1,5 +1,10 @@
 package de.hirola.adroles.views.persons;
 
+import com.vaadin.flow.component.Unit;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Person;
 import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentEventListener;
@@ -14,14 +19,15 @@ import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.shared.Registration;
-import de.hirola.adroles.data.entity.Role;
 
 public class PersonForm extends FormLayout {
   private Person person;
   private  final Binder<Person> binder = new BeanValidationBinder<>(Person.class);
-  private final TextField firstName = new TextField(getTranslation("person.firstName"));
-  private final TextField lastName = new TextField(getTranslation("person.lastName"));
+  private final TextField centralAccountName = new TextField(getTranslation("centralAccountName"));
+  private final TextField firstName = new TextField(getTranslation("firstname"));
+  private final TextField lastName = new TextField(getTranslation("lastname"));
   private final EmailField emailAddress = new EmailField(getTranslation("emailAddress"));
+  private final TextField description = new TextField(getTranslation("description"));
   private Button saveButton;
 
   public PersonForm() {
@@ -32,6 +38,16 @@ public class PersonForm extends FormLayout {
   }
 
   private void addComponents() {
+
+    Button assignRolesButton = new Button(getTranslation("assignRoles"), new Icon(VaadinIcon.PLUS));
+    assignRolesButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+    assignRolesButton.addClickListener(event -> fireEvent(new AssignRolesEvent(this, person)));
+
+    Button assignOrganizationsButton = new Button(getTranslation("assignOrganisations"), new Icon(VaadinIcon.PLUS));
+    assignOrganizationsButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+    assignOrganizationsButton.addClickListener(event -> fireEvent(new AssignOrgEvent(this, person)));
+
+    VerticalLayout buttonsLayout_1 = new VerticalLayout(assignRolesButton, assignOrganizationsButton);
 
     saveButton = new Button(getTranslation("save"));
     saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -47,9 +63,10 @@ public class PersonForm extends FormLayout {
     closeButton.addClickShortcut(Key.ESCAPE);
     closeButton.addClickListener(event -> fireEvent(new CloseEvent(this)));
 
-    HorizontalLayout buttonsLayout = new HorizontalLayout(saveButton, deleteButton, closeButton);
+    HorizontalLayout buttonsLayout_2 = new HorizontalLayout(saveButton, deleteButton, closeButton);
 
-    add(firstName, lastName, emailAddress, buttonsLayout);
+    add(centralAccountName, firstName, lastName, emailAddress, description,
+            buttonsLayout_1, buttonsLayout_2);
   }
 
   public void setPerson(Person person) {
@@ -82,6 +99,18 @@ public class PersonForm extends FormLayout {
 
   public static class SaveEvent extends PersonFormEvent {
     SaveEvent(PersonForm source, Person person) {
+      super(source, person);
+    }
+  }
+
+  public static class AssignRolesEvent extends PersonFormEvent {
+    AssignRolesEvent(PersonForm source, Person person) {
+      super(source, person);
+    }
+  }
+
+  public static class AssignOrgEvent extends PersonFormEvent {
+    AssignOrgEvent(PersonForm source, Person person) {
       super(source, person);
     }
   }

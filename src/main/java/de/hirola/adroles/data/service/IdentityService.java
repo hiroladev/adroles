@@ -71,17 +71,24 @@ public class IdentityService {
         return adAccountRepository.count();
     }
 
-    public void importPersonsFromAD() {
+    public void importPersonsFromAD(boolean onlyDifferences) {
         // load accounts from ad
         List<EntityResponse> responses = getADEntityResponses();
-        // create / update AD accounts from response
-        // we need the accounts first to link with persons
-        for (EntityResponse response: responses) {
-            createOrUpdateADAccount(response);
-        }
-        // create / update persons from response
-        for (EntityResponse response: responses) {
-            createOrUpdatePerson(response);
+        if (onlyDifferences) {
+            System.out.println("Not implemented yet");
+        } else {
+            // delete all persons and accounts
+            personRepository.deleteAll();
+            adAccountRepository.deleteAll();
+            // create / update AD accounts from response
+            // we need the accounts first to link with persons
+            for (EntityResponse response : responses) {
+                createOrUpdateADAccount(response);
+            }
+            // create / update persons from response
+            for (EntityResponse response : responses) {
+                createOrUpdatePerson(response);
+            }
         }
     }
 
@@ -97,6 +104,15 @@ public class IdentityService {
             return;
         }
         personRepository.delete(person);
+    }
+
+    public void deletePersons(List<Person> persons) {
+       if (persons == null) {
+           return;
+       }
+       for (Person person: persons) {
+           personRepository.delete(person);
+       }
     }
 
     public ActiveDirectory getActiveDirectory() {
@@ -173,6 +189,7 @@ public class IdentityService {
 
             // get all fields needed for entities person and ad account
             queryRequest.addRequestedField(Global.ADAttributes.ACCOUNT_STATE);
+            queryRequest.addRequestedField(Global.ADAttributes.DESCRIPTION);
             queryRequest.addRequestedField(FieldType.LOGON_NAME);
             queryRequest.addRequestedField(FieldType.DISTINGUISHED_NAME);
             queryRequest.addRequestedField(FieldType.FIRST_NAME);
@@ -193,11 +210,14 @@ public class IdentityService {
         ADAccount adAccount = new ADAccount();
         List<Field> fields = response.getValue();
         for (Field field: fields) {
-            if (field.getType().equals(FieldType.LOGON_NAME)) {
-                adAccount.setLogonName((String) field.getValue());
-            }
-            if (field.getType().equals(FieldType.DISTINGUISHED_NAME)) {
-                adAccount.setDistinguishedName((String) field.getValue());
+            FieldType fieldType = field.getType(); // can be null
+            if (fieldType != null) {
+                if (fieldType.equals(FieldType.LOGON_NAME)) {
+                    adAccount.setLogonName((String) field.getValue());
+                }
+                if (fieldType.equals(FieldType.DISTINGUISHED_NAME)) {
+                    adAccount.setDistinguishedName((String) field.getValue());
+                }
             }
             // account enabled / password expiration
             if (field.getName().equalsIgnoreCase(Global.ADAttributes.ACCOUNT_STATE)) {
@@ -227,27 +247,34 @@ public class IdentityService {
         Person person = new Person();
         List<Field> fields = response.getValue();
         for (Field field: fields) {
-            // set values
-            if (field.getType().equals(FieldType.LOGON_NAME)) {
-                person.setCentralAccountName((String) field.getValue());
+            FieldType fieldType = field.getType(); // can be null
+            if (fieldType != null) {
+                // set values
+                if (fieldType.equals(FieldType.LOGON_NAME)) {
+                    person.setCentralAccountName((String) field.getValue());
+                }
+                if (fieldType.equals(FieldType.FIRST_NAME)) {
+                    person.setFirstName((String) field.getValue());
+                }
+                if (fieldType.equals(FieldType.LAST_NAME)) {
+                    person.setLastName((String) field.getValue());
+                }
+                if (fieldType.equals(FieldType.EMAIL)) {
+                    person.setEmailAddress((String) field.getValue());
+                }
+                if (fieldType.equals(FieldType.PHONE_NUMBER)) {
+                    person.setPhoneNumber((String) field.getValue());
+                }
+                if (fieldType.equals(FieldType.MOBILE_PHONE)) {
+                    person.setMobilePhoneNumber((String) field.getValue());
+                }
+                if (fieldType.equals(FieldType.DEPARTMENT)) {
+                    person.setDepartment((String) field.getValue());
+                }
             }
-            if (field.getType().equals(FieldType.FIRST_NAME)) {
-                person.setFirstName((String) field.getValue());
-            }
-            if (field.getType().equals(FieldType.LAST_NAME)) {
-                person.setLastName((String) field.getValue());
-            }
-            if (field.getType().equals(FieldType.EMAIL)) {
-                person.setEmailAddress((String) field.getValue());
-            }
-            if (field.getType().equals(FieldType.PHONE_NUMBER)) {
-                person.setPhoneNumber((String) field.getValue());
-            }
-            if (field.getType().equals(FieldType.MOBILE_PHONE)) {
-                person.setMobilePhoneNumber((String) field.getValue());
-            }
-            if (field.getType().equals(FieldType.DEPARTMENT)) {
-                person.setDepartment((String) field.getValue());
+            // account enabled / password expiration
+            if (field.getName().equalsIgnoreCase(Global.ADAttributes.DESCRIPTION)) {
+                person.setDescription((String) field.getValue());
             }
         }
         if (isUpdate) {

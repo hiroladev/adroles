@@ -11,13 +11,13 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.textfield.EmailField;
-import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.shared.Registration;
+import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Role;
 
 public class RoleForm extends FormLayout {
@@ -25,7 +25,7 @@ public class RoleForm extends FormLayout {
   private  final Binder<Role> binder = new BeanValidationBinder< >(Role.class);
   private final TextField name = new TextField(getTranslation("name"));
   private final TextField description = new TextField(getTranslation("description"));
-  private final Checkbox isAdminRole = new Checkbox(getTranslation("roles.adminRole"));
+  private final Checkbox isAdminRole = new Checkbox(getTranslation("adminRole"));
   private Button saveButton;
 
   public RoleForm() {
@@ -37,14 +37,19 @@ public class RoleForm extends FormLayout {
 
   private void addComponents() {
 
-    Button addPersonsButton = new Button(getTranslation("rolesForm.addPersons"), new Icon(VaadinIcon.PLUS));
-    addPersonsButton.addClickListener(event -> fireEvent(new AddPersonsEvent(this, role)));
+    Button assignPersonsButton = new Button(getTranslation("assignPersons"), new Icon(VaadinIcon.PLUS));
+    assignPersonsButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+    assignPersonsButton.addClickListener(event -> fireEvent(new AssignPersonsEvent(this, role)));
 
-    Button addADGroupsButton = new Button(getTranslation("rolesForm.addADGroups"), new Icon(VaadinIcon.PLUS));
-    addADGroupsButton.addClickListener(event -> fireEvent(new AddADGroupsEvent(this, role)));
+    Button assignADGroupsButton = new Button(getTranslation("assignADGroups"), new Icon(VaadinIcon.PLUS));
+    assignADGroupsButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+    assignADGroupsButton.addClickListener(event -> fireEvent(new AssignADGroupsEvent(this, role)));
 
-    HorizontalLayout buttonsLayout_1 = new HorizontalLayout(addPersonsButton, addADGroupsButton);
-    buttonsLayout_1.setHeight(100, Unit.PIXELS);
+    Button assignOrganizationsButton = new Button(getTranslation("assignOrganisations"), new Icon(VaadinIcon.PLUS));
+    assignOrganizationsButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+    assignOrganizationsButton.addClickListener(event -> fireEvent(new AddOrganizationsEvent(this, role)));
+
+    VerticalLayout buttonsLayout_1 = new VerticalLayout(assignPersonsButton, assignADGroupsButton, assignOrganizationsButton);
 
     saveButton = new Button(getTranslation("save"));
     saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -111,15 +116,22 @@ public class RoleForm extends FormLayout {
 
   }
 
-  public static class AddPersonsEvent extends RoleFormEvent {
-    AddPersonsEvent(RoleForm source, Role role) {
+  public static class AssignPersonsEvent extends RoleFormEvent {
+    AssignPersonsEvent(RoleForm source, Role role) {
       super(source, role);
     }
 
   }
 
-  public static class AddADGroupsEvent extends RoleFormEvent {
-    AddADGroupsEvent(RoleForm source, Role role) {
+  public static class AssignADGroupsEvent extends RoleFormEvent {
+    AssignADGroupsEvent(RoleForm source, Role role) {
+      super(source, role);
+    }
+
+  }
+
+  public static class AddOrganizationsEvent extends RoleFormEvent {
+    AddOrganizationsEvent(RoleForm source, Role role) {
       super(source, role);
     }
 
