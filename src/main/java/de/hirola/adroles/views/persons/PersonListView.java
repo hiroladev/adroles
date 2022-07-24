@@ -7,6 +7,7 @@ import com.vaadin.flow.component.textfield.TextArea;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Person;
 import de.hirola.adroles.data.service.IdentityService;
+import de.hirola.adroles.data.service.RolesService;
 import de.hirola.adroles.views.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
@@ -26,7 +27,8 @@ import java.util.List;
 @PageTitle("Persons | AD-Roles")
 @PermitAll
 public class PersonListView extends VerticalLayout {
-    private final IdentityService service;
+    private final IdentityService identityService;
+    private final RolesService rolesService;
     private final List<Person> selectedPersons = new ArrayList<>();
     private PersonForm personForm;
     private PersonAssignRoleForm assignRoleForm;
@@ -34,8 +36,9 @@ public class PersonListView extends VerticalLayout {
     private TextField filterTextField;
     private Button deletePersonsButton;
 
-    public PersonListView(IdentityService service) {
-        this.service = service;
+    public PersonListView(IdentityService identityService, RolesService rolesService) {
+        this.identityService = identityService;
+        this.rolesService = rolesService;
         addClassName("persons-list-view");
         setSizeFull();
         addComponents();
@@ -74,13 +77,13 @@ public class PersonListView extends VerticalLayout {
 
         grid.addClassNames("person-grid");
         grid.setSizeFull();
-        grid.addColumn(Person::getCentralAccountName)
-                .setHeader(getTranslation("centralAccountName"))
-                .setFooter(String.format(getTranslation("persons.sum") + ": %s", service.countPersons()))
-                .setSortable(true);
+        grid.addColumn(Person::getLastName).setHeader(getTranslation("lastname"))
+                .setSortable(true)
+                .setFooter(String.format(getTranslation("persons.sum") + ": %s", identityService.countPersons()));
         grid.addColumn(Person::getFirstName).setHeader(getTranslation("firstname"))
                 .setSortable(true);
-        grid.addColumn(Person::getLastName).setHeader(getTranslation("lastname"))
+        grid.addColumn(Person::getCentralAccountName)
+                .setHeader(getTranslation("centralAccountName"))
                 .setSortable(true);
         grid.addColumn(Person::getDepartment).setHeader(getTranslation("department"))
                 .setSortable(true);
@@ -109,6 +112,8 @@ public class PersonListView extends VerticalLayout {
 
         assignRoleForm = new PersonAssignRoleForm();
         assignRoleForm.setWidthFull();
+        assignRoleForm.addListener(PersonAssignRoleForm.SaveEvent.class, this::saveAssignedRoles);
+        assignRoleForm.addListener(PersonAssignRoleForm.CloseEvent.class, event -> closeAssignRolesForm());
 
         FlexLayout content = new FlexLayout(grid, personForm, assignRoleForm);
         content.setFlexGrow(2, grid);
@@ -121,9 +126,8 @@ public class PersonListView extends VerticalLayout {
     }
 
     private void savePerson(PersonForm.SaveEvent event) {
-        service.savePerson(event.getPerson());
+        identityService.savePerson(event.getPerson());
         updateList();
-        closePersonForm();
     }
 
     private void deletePersons() {
@@ -131,7 +135,7 @@ public class PersonListView extends VerticalLayout {
         dialog.setHeaderTitle(getTranslation("question.delete"));
 
         Button okButton = new Button("Ok", clickEvent -> {
-            service.deletePersons(selectedPersons);
+            identityService.deletePersons(selectedPersons);
             updateList();
             selectedPersons.clear();
             deletePersonsButton.setEnabled(false);
@@ -154,7 +158,7 @@ public class PersonListView extends VerticalLayout {
     }
 
     private void deletePerson(PersonForm.DeleteEvent event) {
-        service.deletePerson(event.getPerson());
+        identityService.deletePerson(event.getPerson());
         updateList();
         closePersonForm();
     }
@@ -170,12 +174,11 @@ public class PersonListView extends VerticalLayout {
     }
 
     private void addPerson() {
-        grid.asSingleSelect().clear();
         editPerson(new Person());
     }
 
     private void importPersons() {
-        if (service.countPersons() > 0) {
+        if (identityService.countPersons() > 0) {
             // data can be override
             Dialog dialog = new Dialog();
             dialog.setHeaderTitle(getTranslation("persons.importFromActiveDirectory.dialog.title"));
@@ -185,7 +188,7 @@ public class PersonListView extends VerticalLayout {
             messageArea.setValue(getTranslation("persons.importFromActiveDirectory.dialog.message"));
 
             Button okButton = new Button("Ok", clickEvent -> {
-                service.importPersonsFromAD(false);
+                identityService.importPersonsFromAD(false);
                 updateList();
                 dialog.close();
             });
@@ -193,7 +196,7 @@ public class PersonListView extends VerticalLayout {
             okButton.getStyle().set("margin-right", "auto");
 
             Button partiallyButton = new Button(getTranslation("persons.importFromActiveDirectory.missing"), clickEvent -> {
-                service.importPersonsFromAD(true);
+                identityService.importPersonsFromAD(true);
                 updateList();
                 dialog.close();
             });
@@ -210,7 +213,7 @@ public class PersonListView extends VerticalLayout {
 
             dialog.open();
         } else {
-            service.importPersonsFromAD(false);
+            identityService.importPersonsFromAD(false);
             updateList();
         }
 
@@ -219,12 +222,17 @@ public class PersonListView extends VerticalLayout {
     private void addRoles(PersonForm.AssignRolesEvent event) {
         closePersonForm();
         assignRoleForm.setVisible(true);
-        assignRoleForm.setPerson(event.getPerson());
+        assignRoleForm.setData(event.getPerson(), rolesService.findAllRoles(null));
         addClassName("editing");
     }
 
+    private void saveAssignedRoles(PersonAssignRoleForm.SaveEvent event) {
+        identityService.savePerson(event.getPerson());
+        updateList();
+    }
+
     private void updateList() {
-        grid.setItems(service.findAllPersons(filterTextField.getValue()));
+        grid.setItems(identityService.findAllPersons(filterTextField.getValue()));
     }
 
     private void closePersonForm() {
@@ -234,7 +242,7 @@ public class PersonListView extends VerticalLayout {
     }
 
     private void closeAssignRolesForm() {
-        assignRoleForm.setPerson(null);
+        assignRoleForm.setData(null, null);
         assignRoleForm.setVisible(false);
         removeClassName("editing");
     }

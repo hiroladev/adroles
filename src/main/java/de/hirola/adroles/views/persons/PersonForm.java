@@ -28,10 +28,13 @@ public class PersonForm extends FormLayout {
   private final TextField lastName = new TextField(getTranslation("lastname"));
   private final EmailField emailAddress = new EmailField(getTranslation("emailAddress"));
   private final TextField description = new TextField(getTranslation("description"));
+  private Button assignRolesButton;
+  private Button assignOrganizationsButton;
   private Button saveButton;
 
   public PersonForm() {
     addClassName("person-form");
+    setResponsiveSteps(new ResponsiveStep("500px", 1));
     addComponents();
     binder.bindInstanceFields(this); // text fields -> fields of a person
     binder.addStatusChangeListener(event -> saveButton.setEnabled(binder.isValid()));
@@ -39,15 +42,23 @@ public class PersonForm extends FormLayout {
 
   private void addComponents() {
 
-    Button assignRolesButton = new Button(getTranslation("assignRoles"), new Icon(VaadinIcon.PLUS));
+    centralAccountName.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+    lastName.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+    firstName.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+    emailAddress.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+    description.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+
+    assignRolesButton = new Button(getTranslation("assignRoles"), new Icon(VaadinIcon.PLUS));
     assignRolesButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
     assignRolesButton.addClickListener(event -> fireEvent(new AssignRolesEvent(this, person)));
 
-    Button assignOrganizationsButton = new Button(getTranslation("assignOrganisations"), new Icon(VaadinIcon.PLUS));
+    assignOrganizationsButton = new Button(getTranslation("assignOrganisations"), new Icon(VaadinIcon.PLUS));
     assignOrganizationsButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
     assignOrganizationsButton.addClickListener(event -> fireEvent(new AssignOrgEvent(this, person)));
 
-    VerticalLayout buttonsLayout_1 = new VerticalLayout(assignRolesButton, assignOrganizationsButton);
+    VerticalLayout formsLayout = new VerticalLayout(centralAccountName, firstName, lastName, emailAddress, description,
+            assignRolesButton, assignOrganizationsButton);
+    formsLayout.setPadding(true);
 
     saveButton = new Button(getTranslation("save"));
     saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
@@ -55,7 +66,7 @@ public class PersonForm extends FormLayout {
     saveButton.addClickListener(event -> validateAndSave());
 
     Button deleteButton = new Button(getTranslation("delete"));
-    deleteButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
+    deleteButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
     deleteButton.addClickListener(event -> fireEvent(new DeleteEvent(this, person)));
 
     Button closeButton = new Button(getTranslation("cancel"));
@@ -63,21 +74,35 @@ public class PersonForm extends FormLayout {
     closeButton.addClickShortcut(Key.ESCAPE);
     closeButton.addClickListener(event -> fireEvent(new CloseEvent(this)));
 
-    HorizontalLayout buttonsLayout_2 = new HorizontalLayout(saveButton, deleteButton, closeButton);
+    HorizontalLayout buttonsLayout_1 = new HorizontalLayout(saveButton, deleteButton, closeButton);
+    buttonsLayout_1.setPadding(true);
 
-    add(centralAccountName, firstName, lastName, emailAddress, description,
-            buttonsLayout_1, buttonsLayout_2);
+    add(formsLayout, buttonsLayout_1);
   }
 
   public void setPerson(Person person) {
     this.person = person;
     binder.readBean(person);
+    if (person != null) {
+      if (person.getId() != null) {
+        assignRolesButton.setEnabled(true);
+        assignOrganizationsButton.setEnabled(true);
+      } else {
+        assignRolesButton.setEnabled(false);
+        assignOrganizationsButton.setEnabled(false);
+      }
+    } else {
+      assignRolesButton.setEnabled(false);
+      assignOrganizationsButton.setEnabled(false);
+    }
   }
 
   private void validateAndSave() {
     try {
       binder.writeBean(person);
       fireEvent(new SaveEvent(this, person));
+      assignRolesButton.setEnabled(true);
+      assignOrganizationsButton.setEnabled(true);
     } catch (ValidationException exception) {
       exception.printStackTrace();
     }

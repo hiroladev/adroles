@@ -20,8 +20,9 @@ import java.util.*;
 
 @Entity
 public class Person extends AbstractEntity {
-    @NotEmpty
+
     private String centralAccountName; // used the first logon name
+    @NotEmpty
     private String lastName;
     private String firstName;
     private String emailAddress;
@@ -32,13 +33,36 @@ public class Person extends AbstractEntity {
     @ManyToOne
     @JoinColumn(name = "organisation_unit_id")
     private OrganisationUnit organisationUnit;
-    @ManyToMany(mappedBy = "persons", fetch=FetchType.EAGER)
-    private final Set<Role> roles = new LinkedHashSet<>();
-    @OneToMany(orphanRemoval = true)
+
+    @OneToMany(cascade = CascadeType.PERSIST, fetch= FetchType.EAGER)
     @JoinColumn(name = "person_id")
     private List<ADAccount> adAccounts = new LinkedList<>();
 
+    @ManyToMany(mappedBy = "persons", cascade = CascadeType.PERSIST, fetch= FetchType.EAGER)
+    private Collection<Role> roles = new ArrayList<>();
+
     private LocalDate entryDate, exitDate;
+
+    public Collection<Role> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Collection<Role> roles) {
+        this.roles = roles;
+    }
+
+    public void setRoles(List<Role> roles) {
+        if (roles == null) {
+            return;
+        }
+        this.roles.addAll(roles);
+    }
+    public void addRole(Role role) {
+        if (role == null) {
+            return;
+        }
+        roles.add(role);
+    }
 
     public List<ADAccount> getADAccounts() {
         return adAccounts;
@@ -49,16 +73,20 @@ public class Person extends AbstractEntity {
     }
 
     private void addADAccount(ADAccount account) {
+        if (account == null) {
+            return;
+        }
         if (!adAccounts.contains(account)) {
             adAccounts.add(account);
         }
     }
 
     private void removeADAccount(ADAccount account) {
+        if (account == null) {
+            return;
+        }
         adAccounts.remove(account);
     }
-
-
 
     public String getCentralAccountName() {
         return centralAccountName;
@@ -146,5 +174,19 @@ public class Person extends AbstractEntity {
 
     public void setExitDate(LocalDate exitDate) {
         this.exitDate = exitDate;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        Person person = (Person) o;
+        return Objects.equals(centralAccountName, person.centralAccountName) && Objects.equals(lastName, person.lastName) && Objects.equals(firstName, person.firstName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), centralAccountName, lastName, firstName);
     }
 }

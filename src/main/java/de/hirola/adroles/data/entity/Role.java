@@ -23,19 +23,24 @@ public class Role extends AbstractEntity {
     private String name;
     private String description;
     private boolean isAdminRole;
-    @ManyToMany(fetch= FetchType.EAGER)
+    @ManyToMany(cascade = CascadeType.PERSIST, fetch= FetchType.EAGER)
     @JoinTable(name = "role_adgroup",
             joinColumns = { @JoinColumn(name = "role_id") },
             inverseJoinColumns = { @JoinColumn(name = "adgroup_id") })
     private Set<ADGroup> adGroups = new LinkedHashSet<>();
-    @ManyToMany(fetch= FetchType.EAGER)
-    @JoinTable(name = "role_person",
-            joinColumns = { @JoinColumn(name = "role_id") },
-            inverseJoinColumns = { @JoinColumn(name = "person_id") })
-    private Set<Person> persons = new LinkedHashSet<>();
 
-    public Set<Person> getPersons() {
+    @ManyToMany(cascade = CascadeType.PERSIST, fetch= FetchType.EAGER)
+    @JoinTable(name = "role_persons",
+            joinColumns = @JoinColumn(name = "role_id"),
+            inverseJoinColumns = @JoinColumn(name = "persons_id"))
+    private Collection<Person> persons = new ArrayList<>();
+
+    public Collection<Person> getPersons() {
         return persons;
+    }
+
+    public void setPersons(Collection<Person> persons) {
+        this.persons = persons;
     }
 
     public void setPersons(Set<Person> persons) {
@@ -90,5 +95,19 @@ public class Role extends AbstractEntity {
 
     public void removeADGroup(ADGroup group) {
         adGroups.remove(group);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        Role role = (Role) o;
+        return Objects.equals(name, role.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), name);
     }
 }

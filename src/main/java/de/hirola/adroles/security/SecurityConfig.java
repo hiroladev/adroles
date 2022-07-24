@@ -39,7 +39,7 @@ public class SecurityConfig extends VaadinWebSecurityConfigurerAdapter {
   protected void configure(AuthenticationManagerBuilder auth) throws Exception {
     auth.jdbcAuthentication()
             .dataSource(datasource)
-            .usersByUsernameQuery("select login_name,password,enabled from user where login_name = ?")
+            .usersByUsernameQuery("select login_name,password,enabled from users where login_name = ?")
             .authoritiesByUsernameQuery("select login_name,authority from authorities where login_name = ?");
   }
 

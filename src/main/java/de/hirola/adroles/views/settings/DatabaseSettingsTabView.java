@@ -7,6 +7,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
@@ -128,14 +130,15 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
                 databaseConfigurationBinder.writeBean(databaseConfiguration);
                 // test the connection
                 //service.verifyConnection(activeDirectory, domainController);
-                Dialog dialog = new Dialog();
-                dialog.add(getTranslation("domain.connected"));
-                dialog.open();
+                Notification notification = Notification.show(getTranslation("domain.connected"));
+                notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                notification.setPosition(Notification.Position.MIDDLE);
+                notification.open();
             } catch (ValidationException exception) {
-                Dialog dialog = new Dialog();
-                dialog.setHeaderTitle(getTranslation("error.domain.connection"));
-                dialog.add(exception.getMessage());
-                dialog.open();
+                Notification notification = new Notification(getTranslation("error.domain.connection"));
+                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                notification.setPosition(Notification.Position.MIDDLE);
+                notification.open();
                 logger.debug(exception.getMessage());
             }
         }

@@ -7,6 +7,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.PasswordField;
@@ -120,11 +122,15 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
                 // update form object from component values
                 activeDirectoryBinder.writeBean(activeDirectory);
                 service.saveActiveDirectory(activeDirectory);
-                Dialog dialog = new Dialog();
-                dialog.add(getTranslation("data.saved"));
-                dialog.open();
+                Notification notification = Notification.show(getTranslation("data.saved"));
+                notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                notification.setPosition(Notification.Position.MIDDLE);
+                notification.open();
             } catch (ValidationException exception) {
-                //TODO: inform the user
+                Notification notification = new Notification(getTranslation("data.save.error"));
+                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                notification.setPosition(Notification.Position.MIDDLE);
+                notification.open();
                 logger.debug(exception.getLocalizedMessage());
             }
         }
@@ -134,14 +140,15 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
                 activeDirectoryBinder.writeBean(activeDirectory);
                 // test the connection
                 service.verifyConnection(activeDirectory);
-                Dialog dialog = new Dialog();
-                dialog.add(getTranslation("domain.connected"));
-                dialog.open();
+                Notification notification = Notification.show(getTranslation("domain.connected"));
+                notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                notification.setPosition(Notification.Position.MIDDLE);
+                notification.open();
             } catch (ValidationException | ConnectException exception) {
-                Dialog dialog = new Dialog();
-                dialog.setHeaderTitle(getTranslation("error.domain.connection"));
-                dialog.add(exception.getMessage());
-                dialog.open();
+                Notification notification = new Notification(getTranslation("error.domain.connection"));
+                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                notification.setPosition(Notification.Position.MIDDLE);
+                notification.open();
                 logger.debug(exception.getMessage());
             }
         }
