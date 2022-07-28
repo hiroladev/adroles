@@ -6,9 +6,6 @@ import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextField;
@@ -18,8 +15,9 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.DatabaseConfiguration;
-import de.hirola.adroles.data.service.DatabaseConfigurationService;
+import de.hirola.adroles.service.DatabaseConfigurationService;
 import de.hirola.adroles.views.MainLayout;
+import de.hirola.adroles.views.NotificationPopUp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +51,7 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
 
         TextField configurationNameTextField = new TextField();
         configurationNameTextField.setLabel(getTranslation("database.configuration.name"));
-        configurationNameTextField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+        configurationNameTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         databaseConfigurationBinder
                 .forField(configurationNameTextField)
                 .withValidator(name -> name.length() > 0, getTranslation("error.input.name.empty"))
@@ -63,7 +61,7 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
         TextField jdbcDriverTextField = new TextField();
         jdbcDriverTextField.setLabel(getTranslation("database.configuration.jdbcDriver"));
         jdbcDriverTextField.setPlaceholder(getTranslation("database.configuration.jdbcDriver.placeholder"));
-        jdbcDriverTextField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+        jdbcDriverTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         databaseConfigurationBinder
                 .forField(jdbcDriverTextField)
                 .withValidator(jdbcDriverString -> jdbcDriverString.length() > 0, getTranslation("error.input.jdbcDriver.empty"))
@@ -73,7 +71,7 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
         TextField jdbcURLTextField = new TextField();
         jdbcURLTextField.setLabel(getTranslation("database.configuration.jdbcURL"));
         jdbcURLTextField.setPlaceholder(getTranslation("database.configuration.jdbcURL.placeholder"));
-        jdbcURLTextField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+        jdbcURLTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         databaseConfigurationBinder
                 .forField(jdbcURLTextField)
                 .withValidator(jdbcDriverString -> jdbcDriverString.length() > 0, getTranslation("error.input.jdbcDriver.empty"))
@@ -82,7 +80,7 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
 
         TextField usernameTextField = new TextField();
         usernameTextField.setLabel(getTranslation("database.configuration.username"));
-        usernameTextField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+        usernameTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         databaseConfigurationBinder
                 .forField(usernameTextField)
                 .bind(DatabaseConfiguration::getUsername, DatabaseConfiguration::setUsername);
@@ -90,20 +88,20 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
 
         PasswordField passwordField = new PasswordField();
         passwordField.setLabel(getTranslation("database.configuration.password"));
-        passwordField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+        passwordField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         databaseConfigurationBinder
                 .forField(passwordField)
                 .bind(DatabaseConfiguration::getPassword, DatabaseConfiguration::setPassword);
         add(passwordField);
 
         saveButton = new Button(getTranslation("save"));
-        saveButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+        saveButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveButton.addClickListener(this);
         add(saveButton);
 
         verifyButton = new Button(getTranslation("verify"));
-        verifyButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+        verifyButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
         verifyButton.addClickListener(this);
         add(verifyButton);
 
@@ -115,10 +113,7 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
             try {
                 // update form object from component values
                 databaseConfigurationBinder.writeBean(databaseConfiguration);
-                //service.saveActiveDirectory(activeDirectory);
-                Dialog dialog = new Dialog();
-                dialog.add(getTranslation("data.saved"));
-                dialog.open();
+                NotificationPopUp.show(NotificationPopUp.INFO, getTranslation("data.saved"));
             } catch (ValidationException exception) {
                 //TODO: inform the user
                 logger.debug(exception.getLocalizedMessage());
@@ -128,17 +123,9 @@ public class DatabaseSettingsTabView extends VerticalLayout implements Component
             try {
                 // update form object from component values
                 databaseConfigurationBinder.writeBean(databaseConfiguration);
-                // test the connection
-                //service.verifyConnection(activeDirectory, domainController);
-                Notification notification = Notification.show(getTranslation("domain.connected"));
-                notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                notification.setPosition(Notification.Position.MIDDLE);
-                notification.open();
+                NotificationPopUp.show(NotificationPopUp.INFO, getTranslation("domain.connected"));
             } catch (ValidationException exception) {
-                Notification notification = new Notification(getTranslation("error.domain.connection"));
-                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-                notification.setPosition(Notification.Position.MIDDLE);
-                notification.open();
+                NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.domain.connection"));
                 logger.debug(exception.getMessage());
             }
         }

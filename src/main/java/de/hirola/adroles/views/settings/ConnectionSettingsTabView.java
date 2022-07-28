@@ -6,9 +6,6 @@ import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
-import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.NumberField;
 import com.vaadin.flow.component.textfield.PasswordField;
@@ -20,14 +17,14 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.ActiveDirectory;
-import de.hirola.adroles.data.service.IdentityService;
+import de.hirola.adroles.service.IdentityService;
 import de.hirola.adroles.views.MainLayout;
+import de.hirola.adroles.views.NotificationPopUp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.PermitAll;
 import java.net.ConnectException;
-import java.security.GeneralSecurityException;
 
 @Route(value = "connection-setting", layout = MainLayout.class)
 @PageTitle("Settings - Connection | AD-Roles")
@@ -55,7 +52,7 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
     private void addComponents() {
         TextField domainNameTextField = new TextField(getTranslation("domain.name"));
         domainNameTextField.setPlaceholder(getTranslation("domain.name.placeholder"));
-        domainNameTextField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+        domainNameTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         activeDirectoryBinder
                 .forField(domainNameTextField)
                 .withValidator(domainName -> domainName.length() > 0, getTranslation("error.input.all.empty"))
@@ -64,7 +61,7 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
 
         TextField serverTextField = new TextField(getTranslation("domain.server.ip"));
         serverTextField.setPlaceholder(getTranslation("domain.server.ip.placeholder"));
-        serverTextField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+        serverTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         activeDirectoryBinder
                 .forField(serverTextField)
                 .withValidator(server -> server.length() > 0, getTranslation("error.input.all.empty"))
@@ -87,7 +84,7 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
 
         TextField usernameTextField = new TextField(getTranslation("username"));
         usernameTextField.setPlaceholder("CN=AD-Roles,CN=Users,DC=example,DC=com");
-        usernameTextField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+        usernameTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         activeDirectoryBinder
                 .forField(usernameTextField)
                 .withValidator(username -> username.length() > 0, getTranslation("error.input.all.empty"))
@@ -95,7 +92,7 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
         add(usernameTextField);
 
         PasswordField passwordField = new PasswordField(getTranslation("password"));
-        passwordField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+        passwordField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         activeDirectoryBinder
                 .forField(passwordField)
                 .withValidator(password -> password.length() > 0, getTranslation("error.input.all.empty"))
@@ -103,13 +100,13 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
         add(passwordField);
 
         saveButton = new Button(getTranslation("save"));
-        saveButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+        saveButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveButton.addClickListener(this);
         add(saveButton);
 
         verifyButton = new Button(getTranslation("verify"));
-        verifyButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+        verifyButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
         verifyButton.addClickListener(this);
         add(verifyButton);
 
@@ -122,15 +119,9 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
                 // update form object from component values
                 activeDirectoryBinder.writeBean(activeDirectory);
                 service.saveActiveDirectory(activeDirectory);
-                Notification notification = Notification.show(getTranslation("data.saved"));
-                notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                notification.setPosition(Notification.Position.MIDDLE);
-                notification.open();
+                NotificationPopUp.show(NotificationPopUp.INFO, getTranslation("data.saved"));
             } catch (ValidationException exception) {
-                Notification notification = new Notification(getTranslation("data.save.error"));
-                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-                notification.setPosition(Notification.Position.MIDDLE);
-                notification.open();
+                NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.save"));
                 logger.debug(exception.getLocalizedMessage());
             }
         }
@@ -140,15 +131,9 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
                 activeDirectoryBinder.writeBean(activeDirectory);
                 // test the connection
                 service.verifyConnection(activeDirectory);
-                Notification notification = Notification.show(getTranslation("domain.connected"));
-                notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
-                notification.setPosition(Notification.Position.MIDDLE);
-                notification.open();
+                NotificationPopUp.show(NotificationPopUp.INFO, getTranslation("domain.connected"));
             } catch (ValidationException | ConnectException exception) {
-                Notification notification = new Notification(getTranslation("error.domain.connection"));
-                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
-                notification.setPosition(Notification.Position.MIDDLE);
-                notification.open();
+                NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.domain.connection"));
                 logger.debug(exception.getMessage());
             }
         }

@@ -27,10 +27,9 @@ public class PersonForm extends FormLayout {
   private final TextField firstName = new TextField(getTranslation("firstname"));
   private final TextField lastName = new TextField(getTranslation("lastname"));
   private final EmailField emailAddress = new EmailField(getTranslation("emailAddress"));
+  private final TextField departmentName = new TextField(getTranslation("department"));
   private final TextField description = new TextField(getTranslation("description"));
-  private Button assignRolesButton;
-  private Button assignOrganizationsButton;
-  private Button saveButton;
+  private Button assignRolesButton, assignOrganizationsButton, saveButton;
 
   public PersonForm() {
     addClassName("person-form");
@@ -42,22 +41,23 @@ public class PersonForm extends FormLayout {
 
   private void addComponents() {
 
-    centralAccountName.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
-    lastName.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
-    firstName.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
-    emailAddress.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
-    description.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+    centralAccountName.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+    lastName.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+    firstName.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+    emailAddress.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+    departmentName.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+    description.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
 
     assignRolesButton = new Button(getTranslation("assignRoles"), new Icon(VaadinIcon.PLUS));
-    assignRolesButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+    assignRolesButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
     assignRolesButton.addClickListener(event -> fireEvent(new AssignRolesEvent(this, person)));
 
-    assignOrganizationsButton = new Button(getTranslation("assignOrganisations"), new Icon(VaadinIcon.PLUS));
-    assignOrganizationsButton.setWidth(Global.DEFAULT_BUTTON_WIDTH, Unit.PIXELS);
+    assignOrganizationsButton = new Button(getTranslation("assignOrgUnits"), new Icon(VaadinIcon.PLUS));
+    assignOrganizationsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
     assignOrganizationsButton.addClickListener(event -> fireEvent(new AssignOrgEvent(this, person)));
 
-    VerticalLayout formsLayout = new VerticalLayout(centralAccountName, firstName, lastName, emailAddress, description,
-            assignRolesButton, assignOrganizationsButton);
+    VerticalLayout formsLayout = new VerticalLayout(centralAccountName, firstName, lastName, emailAddress,
+            departmentName, description, assignRolesButton, assignOrganizationsButton);
     formsLayout.setPadding(true);
 
     saveButton = new Button(getTranslation("save"));

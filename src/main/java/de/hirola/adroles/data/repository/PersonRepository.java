@@ -14,10 +14,18 @@ public interface PersonRepository extends JpaRepository<Person, Integer> {
     @Query("select p from Person p " +
         "where lower(p.firstName) like lower(concat('%', :searchTerm, '%')) " +
             "or lower(p.lastName) like lower(concat('%', :searchTerm, '%'))" +
+            "or lower(p.departmentName) like lower(concat('%', :searchTerm, '%'))" +
+            "or lower(p.description) like lower(concat('%', :searchTerm, '%'))" +
+            "or lower(p.emailAddress) like lower(concat('%', :searchTerm, '%'))" +
             "or lower(p.centralAccountName) like lower(concat('%', :searchTerm, '%'))")
     List<Person> search(@Param("searchTerm") String searchTerm);
 
-    Optional<Person> findByAdAccounts_LogonName(@NonNull String logonName);
+    Optional<Person> findByAdUsers_LogonName(@NonNull String logonName);
+
+    @Query("select distinct departmentName from Person where departmentName <> ''")
+    List<String> getUniqueDepartmentNames();
+
+    List<Person> findByDepartmentNameLike(String departmentName);
 
 
 }

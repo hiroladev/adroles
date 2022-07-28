@@ -1,47 +1,48 @@
-package de.hirola.adroles.views.persons;
+package de.hirola.adroles.views.adgroups;
 
-import com.vaadin.flow.component.Unit;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.textfield.TextArea;
-import de.hirola.adroles.Global;
-import de.hirola.adroles.data.entity.Person;
-import de.hirola.adroles.service.IdentityService;
-import de.hirola.adroles.views.MainLayout;
-import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
-import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.Route;
+import de.hirola.adroles.Global;
+import de.hirola.adroles.data.entity.ADGroup;
+import de.hirola.adroles.service.IdentityService;
+import de.hirola.adroles.views.MainLayout;
 import de.hirola.adroles.views.NotificationPopUp;
+import de.hirola.adroles.views.persons.PersonAssignRoleForm;
+import de.hirola.adroles.views.persons.PersonForm;
 
 import javax.annotation.security.PermitAll;
 import java.util.ArrayList;
 import java.util.List;
 
-@Route(value="persons", layout = MainLayout.class)
-@PageTitle("Persons | AD-Roles")
+@Route(value="ad-group", layout = MainLayout.class)
+@PageTitle("AD-Groups | AD-Roles")
 @PermitAll
-public class PersonListView extends VerticalLayout {
+public class ADGroupListView extends VerticalLayout {
     private final IdentityService identityService;
-    private final List<Person> selectedPersons = new ArrayList<>();
-    private PersonForm personForm;
+    private final List<ADGroup> selectedADGroups = new ArrayList<>();
+    private ADGroupForm adGroupForm;
     private PersonAssignRoleForm assignRoleForm;
-    private final Grid<Person> grid = new Grid<>(Person.class, false);
+    private final Grid<ADGroup> grid = new Grid<>(ADGroup.class, false);
     private TextField filterTextField;
-    private Button addPersonButton, importButton, deletePersonsButton;
+    private Button addADGroupButton, importButton, deleteADGroupsButton;
 
-    public PersonListView(IdentityService identityService) {
+    public ADGroupListView(IdentityService identityService) {
         this.identityService = identityService;
-        addClassName("persons-list-view");
+        addClassName("ad-group-list-view");
         setSizeFull();
         addComponents();
         updateList();
-        closePersonForm();
+        closeADGroupForm();
         closeAssignRolesForm();
     }
 
@@ -53,75 +54,70 @@ public class PersonListView extends VerticalLayout {
         filterTextField.setValueChangeMode(ValueChangeMode.LAZY);
         filterTextField.addValueChangeListener(event -> updateList());
 
-        addPersonButton = new Button(getTranslation("addPerson"));
-        addPersonButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
-        addPersonButton.addClickListener(click -> addPerson());
+        addADGroupButton = new Button(getTranslation("addADGroup"));
+        addADGroupButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        addADGroupButton.addClickListener(click -> addADgroup());
 
-        deletePersonsButton = new Button(getTranslation("deletePersons"));
-        deletePersonsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
-        deletePersonsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
-        deletePersonsButton.addClickListener(click -> deletePersons());
+        deleteADGroupsButton = new Button(getTranslation("deleteADGroups"));
+        deleteADGroupsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
+        deleteADGroupsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        deleteADGroupsButton.addClickListener(click -> deleteADGroups());
 
         //TODO: enable / disable import by config
         importButton = new Button(getTranslation("importFromActiveDirectory"));
         importButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         importButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
-        importButton.addClickListener(click -> importPersons());
+        importButton.addClickListener(click -> importADGroups());
 
-        HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addPersonButton, deletePersonsButton, importButton);
+        HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addADGroupButton, deleteADGroupsButton, importButton);
         toolbar.addClassName("toolbar");
 
-        grid.addClassNames("person-grid");
+        grid.addClassNames("ad-group-grid");
         grid.setSizeFull();
-        grid.addColumn(Person::getLastName).setHeader(getTranslation("lastname"))
+        grid.addColumn(ADGroup::getName).setHeader(getTranslation("name"))
                 .setKey(Global.Component.FOOTER_COLUMN_KEY)
                 .setSortable(true)
-                .setFooter(String.format(getTranslation("persons.sum") + ": %s", identityService.countPersons()));
-        grid.addColumn(Person::getFirstName).setHeader(getTranslation("firstname"))
+                .setFooter(String.format(getTranslation("adGroups.sum") + ": %s", identityService.countADGroups()));
+        grid.addColumn(ADGroup::getDescription).setHeader(getTranslation("description"))
                 .setSortable(true);
-        grid.addColumn(Person::getCentralAccountName)
-                .setHeader(getTranslation("centralAccountName"))
-                .setSortable(true);
-        grid.addColumn(Person::getDepartmentName).setHeader(getTranslation("department"))
-                .setSortable(true);
-        grid.addColumn(Person::getDescription).setHeader(getTranslation("description"))
+        grid.addColumn(adGroup -> adGroup.isAdminGroup() ? getTranslation("yes") : getTranslation("no"))
+                .setHeader(getTranslation("adminGroup"))
                 .setSortable(true);
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
         grid.setSelectionMode(Grid.SelectionMode.MULTI);
-        grid.addItemClickListener(event -> editPerson(event.getItem()));
+        grid.addItemClickListener(event -> editADGroup(event.getItem()));
         grid.addSelectionListener(selection -> {
-            selectedPersons.clear();
+            selectedADGroups.clear();
             if (selection.getAllSelectedItems().size() == 0) {
-                deletePersonsButton.setEnabled(false);
+                deleteADGroupsButton.setEnabled(false);
             } else {
-                deletePersonsButton.setEnabled(true);
-                selectedPersons.addAll(selection.getAllSelectedItems());
+                deleteADGroupsButton.setEnabled(true);
+                selectedADGroups.addAll(selection.getAllSelectedItems());
             }
         });
 
-        personForm = new PersonForm();
-        personForm.setWidthFull();
-        personForm.addListener(PersonForm.SaveEvent.class, this::savePerson);
-        personForm.addListener(PersonForm.AssignRolesEvent.class, this::addRoles);
-        personForm.addListener(PersonForm.DeleteEvent.class, this::deletePerson);
-        personForm.addListener(PersonForm.CloseEvent.class, event -> closePersonForm());
+        adGroupForm = new ADGroupForm();
+        adGroupForm.setWidthFull();
+        adGroupForm.addListener(ADGroupForm.SaveEvent.class, this::saveADGroup);
+        adGroupForm.addListener(ADGroupForm.DeleteEvent.class, this::deleteADGroup);
+        adGroupForm.addListener(ADGroupForm.CloseEvent.class, event -> closeADGroupForm());
 
         assignRoleForm = new PersonAssignRoleForm();
         assignRoleForm.setWidthFull();
         assignRoleForm.addListener(PersonAssignRoleForm.SaveEvent.class, this::saveAssignedRoles);
         assignRoleForm.addListener(PersonAssignRoleForm.CloseEvent.class, event -> closeAssignRolesForm());
 
-        FlexLayout content = new FlexLayout(grid, personForm, assignRoleForm);
+        FlexLayout content = new FlexLayout(grid, adGroupForm, assignRoleForm);
         content.setFlexGrow(2, grid);
-        content.setFlexGrow(1, personForm, assignRoleForm);
-        content.setFlexShrink(0, personForm, assignRoleForm);
+        content.setFlexGrow(1, adGroupForm, assignRoleForm);
+        content.setFlexShrink(0, adGroupForm, assignRoleForm);
         content.addClassNames("content", "gap-m");
         content.setSizeFull();
 
         add(toolbar, content);
     }
 
-    private void importPersons() {
+    private void importADGroups() {
         Dialog dialog = new Dialog();
         if (identityService.countPersons() > 0) {
             // data can be override
@@ -129,11 +125,11 @@ public class PersonListView extends VerticalLayout {
 
             TextArea messageArea = new TextArea();
             messageArea.setWidthFull();
-            messageArea.setValue(getTranslation("persons.importFromActiveDirectory.dialog.message"));
+            messageArea.setValue(getTranslation("adGroup.importFromActiveDirectory.dialog.message"));
 
             Button okButton = new Button("Ok", clickEvent -> {
                 dialog.close();
-                if (!identityService.importPersonsFromAD(false)) {
+                if (!identityService.importGroupsFromAD(false)) {
                     NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
                 }
                 updateList();
@@ -143,10 +139,7 @@ public class PersonListView extends VerticalLayout {
 
             Button partiallyButton = new Button(getTranslation("question.missing"), clickEvent -> {
                 dialog.close();
-                if (!identityService.importPersonsFromAD(true)) {
-                    NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
-                }
-                updateList();
+                NotificationPopUp.show(NotificationPopUp.INFO, getTranslation("not.implemented"));
             });
             okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
             okButton.getStyle().set("margin-right", "auto");
@@ -162,49 +155,49 @@ public class PersonListView extends VerticalLayout {
             dialog.open();
         } else {
             dialog.close();
-            if (!identityService.importPersonsFromAD(false)) {
+            if (!identityService.importGroupsFromAD(false)) {
                 NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
             }
             updateList();
         }
     }
 
-    private void addPerson() {
-        editPerson(new Person());
+    private void addADgroup() {
+        editADGroup(new ADGroup());
     }
 
-    private void savePerson(PersonForm.SaveEvent event) {
-        identityService.savePerson(event.getPerson());
-        closePersonForm();
+    private void saveADGroup(ADGroupForm.SaveEvent event) {
+        identityService.saveADGroup(event.getAdGroup());
+        closeADGroupForm();
         updateList();
     }
 
-    public void editPerson(Person person) {
-        if (person == null) {
-            closePersonForm();
+    public void editADGroup(ADGroup adGroup) {
+        if (adGroup == null) {
+            closeADGroupForm();
         } else {
             enableComponents(false);
-            personForm.setPerson(person);
-            personForm.setVisible(true);
+            adGroupForm.setAdGroup(adGroup);
+            adGroupForm.setVisible(true);
             addClassName("editing");
         }
     }
 
-    private void deletePerson(PersonForm.DeleteEvent event) {
-        identityService.deletePerson(event.getPerson());
+    private void deleteADGroup(ADGroupForm.DeleteEvent event) {
+        identityService.deleteADGroup(event.getAdGroup());
         updateList();
-        closePersonForm();
+        closeADGroupForm();
     }
 
-    private void deletePersons() {
+    private void deleteADGroups() {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle(getTranslation("question.delete"));
 
         Button okButton = new Button("Ok", clickEvent -> {
-            identityService.deletePersons(selectedPersons);
+            identityService.deleteADGroups(selectedADGroups);
             updateList();
-            selectedPersons.clear();
-            deletePersonsButton.setEnabled(false);
+            selectedADGroups.clear();
+            deleteADGroupsButton.setEnabled(false);
             dialog.close();
         });
         okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
@@ -224,7 +217,7 @@ public class PersonListView extends VerticalLayout {
     }
 
     private void addRoles(PersonForm.AssignRolesEvent event) {
-        closePersonForm();
+        closeADGroupForm();
         enableComponents(false);
         assignRoleForm.setVisible(true);
         assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null));
@@ -237,16 +230,16 @@ public class PersonListView extends VerticalLayout {
     }
 
     private void updateList() {
-        List<Person> filteredPersons = identityService.findAllPersons(filterTextField.getValue());
-        grid.setItems(filteredPersons);
+        List<ADGroup> filteredADGroups = identityService.findAllADGroups(filterTextField.getValue());
+        grid.setItems(filteredADGroups);
         grid.getColumnByKey(Global.Component.FOOTER_COLUMN_KEY)
-                .setFooter(String.format(getTranslation("persons.sum") + ": %s", filteredPersons.size()));
+                .setFooter(String.format(getTranslation("adGroups.sum") + ": %s", filteredADGroups.size()));
     }
 
-    private void closePersonForm() {
-        personForm.setPerson(null);
+    private void closeADGroupForm() {
+        adGroupForm.setAdGroup(null);
         enableComponents(true);
-        personForm.setVisible(false);
+        adGroupForm.setVisible(false);
         removeClassName("editing");
     }
 
@@ -259,11 +252,11 @@ public class PersonListView extends VerticalLayout {
 
     private void enableComponents(boolean enabled) {
         filterTextField.setEnabled(enabled);
-        addPersonButton.setEnabled(enabled);
-        if (selectedPersons.size() == 0) {
-            deletePersonsButton.setEnabled(false);
+        addADGroupButton.setEnabled(enabled);
+        if (selectedADGroups.size() == 0) {
+            deleteADGroupsButton.setEnabled(false);
         } else {
-            deletePersonsButton.setEnabled(enabled);
+            deleteADGroupsButton.setEnabled(enabled);
         }
         if (!identityService.isConnected()) {
             importButton.setEnabled(false);

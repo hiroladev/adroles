@@ -1,11 +1,12 @@
 package de.hirola.adroles.data.entity;
 
 import de.hirola.adroles.data.AbstractEntity;
-import org.springframework.context.annotation.Lazy;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
@@ -23,40 +24,30 @@ public class Role extends AbstractEntity {
     private String name;
     private String description;
     private boolean isAdminRole;
+    private boolean isOrgRole; // an org is also a role
+
     @ManyToMany(cascade = CascadeType.PERSIST, fetch= FetchType.EAGER)
     @JoinTable(name = "role_adgroup",
-            joinColumns = { @JoinColumn(name = "role_id") },
-            inverseJoinColumns = { @JoinColumn(name = "adgroup_id") })
+            joinColumns = @JoinColumn(name = "role_id"),
+            inverseJoinColumns = @JoinColumn(name = "adgroup_id"))
     private Set<ADGroup> adGroups = new LinkedHashSet<>();
 
-    @ManyToMany(cascade = CascadeType.PERSIST, fetch= FetchType.EAGER)
-    @JoinTable(name = "role_persons",
+    @ManyToMany(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
+    @JoinTable(name = "role_person",
             joinColumns = @JoinColumn(name = "role_id"),
-            inverseJoinColumns = @JoinColumn(name = "persons_id"))
-    private Collection<Person> persons = new ArrayList<>();
+            inverseJoinColumns = @JoinColumn(name = "person_id"))
+    private Set<Person> persons = new LinkedHashSet<>();
 
-    public Collection<Person> getPersons() {
-        return persons;
-    }
-
-    public void setPersons(Collection<Person> persons) {
-        this.persons = persons;
-    }
-
-    public void setPersons(Set<Person> persons) {
-        this.persons = persons;
-    }
-
-    private void addPerson(Person person) {
+    public void addPerson(Person person) {
         persons.add(person);
     }
 
-    private void removePerson(Person person) {
+    public void removePerson(Person person) {
         persons.remove(person);
     }
 
     public String getName() {
-        return name;
+        return Objects.requireNonNullElse(name, "");
     }
 
     public void setName(String name) {
@@ -64,7 +55,7 @@ public class Role extends AbstractEntity {
     }
 
     public String getDescription() {
-        return description;
+        return Objects.requireNonNullElse(description, "");
     }
 
     public void setDescription(String description) {
@@ -79,22 +70,53 @@ public class Role extends AbstractEntity {
         isAdminRole = adminRole;
     }
 
-    public Set<ADGroup> getADGroups() {
+    public boolean isOrgRole() {
+        return isOrgRole;
+    }
+
+    public void setOrgRole(boolean orgRole) {
+        isOrgRole = orgRole;
+    }
+
+    public Set<ADGroup> getAdGroups() {
         return adGroups;
     }
 
-    public void setADGroups(Set<ADGroup> groups) {
-        this.adGroups = groups;
-    }
-
-    public void addADGroup(ADGroup group) {
-        if (adGroups.contains(group)) {
-            adGroups.add(group);
+    public void setAdGroups(Set<ADGroup> adGroups) {
+        if (adGroups == null) {
+            return;
         }
+        this.adGroups = adGroups;
     }
 
-    public void removeADGroup(ADGroup group) {
-        adGroups.remove(group);
+    public void addADGroup(ADGroup adGroup) {
+        if (adGroup == null) {
+            return;
+        }
+        this.adGroups.add(adGroup);
+    }
+
+    public void removeADGroup(ADGroup adGroup) {
+        if (adGroup == null) {
+            return;
+        }
+        adGroups.remove(adGroup);
+    }
+
+
+    public Set<Person> getPersons() {
+        return persons;
+    }
+
+    public void setPersons(Set<Person> persons) {
+        if (persons == null) {
+            return;
+        }
+        this.persons = persons;
+    }
+
+    public void removeAllPersons() {
+        persons.clear();
     }
 
     @Override

@@ -5,7 +5,11 @@ import de.hirola.adroles.data.AbstractEntity;
 import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
 import java.time.LocalDate;
-import java.util.*;
+import java.time.ZoneId;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
+
 
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
@@ -20,7 +24,6 @@ import java.util.*;
 
 @Entity
 public class Person extends AbstractEntity {
-
     private String centralAccountName; // used the first logon name
     @NotEmpty
     private String lastName;
@@ -28,65 +31,17 @@ public class Person extends AbstractEntity {
     private String emailAddress;
     private String phoneNumber;
     private String mobilePhoneNumber;
-    private String department;
+    private String departmentName;
     private String description;
-    @ManyToOne
-    @JoinColumn(name = "organisation_unit_id")
-    private OrganisationUnit organisationUnit;
-
-    @OneToMany(cascade = CascadeType.PERSIST, fetch= FetchType.EAGER)
-    @JoinColumn(name = "person_id")
-    private List<ADAccount> adAccounts = new LinkedList<>();
-
-    @ManyToMany(mappedBy = "persons", cascade = CascadeType.PERSIST, fetch= FetchType.EAGER)
-    private Collection<Role> roles = new ArrayList<>();
 
     private LocalDate entryDate, exitDate;
 
-    public Collection<Role> getRoles() {
-        return roles;
-    }
+    @OneToMany(cascade = CascadeType.PERSIST, fetch= FetchType.EAGER)
+    @JoinColumn(name = "person_id")
+    private Set<ADUser> adUsers = new LinkedHashSet<>();
 
-    public void setRoles(Collection<Role> roles) {
-        this.roles = roles;
-    }
-
-    public void setRoles(List<Role> roles) {
-        if (roles == null) {
-            return;
-        }
-        this.roles.addAll(roles);
-    }
-    public void addRole(Role role) {
-        if (role == null) {
-            return;
-        }
-        roles.add(role);
-    }
-
-    public List<ADAccount> getADAccounts() {
-        return adAccounts;
-    }
-
-    public void setADAccounts(List<ADAccount> accounts) {
-        this.adAccounts = accounts;
-    }
-
-    private void addADAccount(ADAccount account) {
-        if (account == null) {
-            return;
-        }
-        if (!adAccounts.contains(account)) {
-            adAccounts.add(account);
-        }
-    }
-
-    private void removeADAccount(ADAccount account) {
-        if (account == null) {
-            return;
-        }
-        adAccounts.remove(account);
-    }
+    @ManyToMany(mappedBy = "persons", cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
+    private Set<Role> roles = new LinkedHashSet<>();
 
     public String getCentralAccountName() {
         return centralAccountName;
@@ -97,7 +52,7 @@ public class Person extends AbstractEntity {
     }
 
     public String getLastName() {
-        return lastName;
+        return Objects.requireNonNullElse(lastName, "");
     }
 
     public void setLastName(String lastName) {
@@ -105,7 +60,7 @@ public class Person extends AbstractEntity {
     }
 
     public String getFirstName() {
-        return firstName;
+        return Objects.requireNonNullElse(firstName, "");
     }
 
     public void setFirstName(String firstName) {
@@ -113,7 +68,7 @@ public class Person extends AbstractEntity {
     }
 
     public String getEmailAddress() {
-        return emailAddress;
+        return Objects.requireNonNullElse(emailAddress, "");
     }
 
     public void setEmailAddress(String emailAddress) {
@@ -121,7 +76,7 @@ public class Person extends AbstractEntity {
     }
 
     public String getPhoneNumber() {
-        return phoneNumber;
+        return Objects.requireNonNullElse(phoneNumber, "");
     }
 
     public void setPhoneNumber(String phoneNumber) {
@@ -129,39 +84,32 @@ public class Person extends AbstractEntity {
     }
 
     public String getMobilePhoneNumber() {
-        return mobilePhoneNumber;
+        return Objects.requireNonNullElse(mobilePhoneNumber, "");
     }
 
     public void setMobilePhoneNumber(String mobilePhoneNumber) {
         this.mobilePhoneNumber = mobilePhoneNumber;
     }
 
-    public String getDepartment() {
-        return department;
+    public String getDepartmentName() {
+        return Objects.requireNonNullElse(departmentName, "");
     }
 
-    public void setDepartment(String department) {
-        this.department = department;
+    public void setDepartmentName(String departmentName) {
+        this.departmentName = departmentName;
     }
 
     public String getDescription() {
-        return description;
+        return Objects.requireNonNullElse(description, "");
     }
 
     public void setDescription(String description) {
         this.description = description;
     }
 
-    public OrganisationUnit getOrganisationUnit() {
-        return organisationUnit;
-    }
-
-    public void setOrganisationUnit(OrganisationUnit organisationUnit) {
-        this.organisationUnit = organisationUnit;
-    }
-
     public LocalDate getEntryDate() {
-        return entryDate;
+        return Objects.requireNonNullElse(entryDate,
+                LocalDate.now(ZoneId.systemDefault()));
     }
 
     public void setEntryDate(LocalDate entryDate) {
@@ -169,11 +117,62 @@ public class Person extends AbstractEntity {
     }
 
     public LocalDate getExitDate() {
-        return exitDate;
+        return Objects.requireNonNullElse(exitDate,
+                LocalDate.now(ZoneId.systemDefault()));
     }
 
     public void setExitDate(LocalDate exitDate) {
         this.exitDate = exitDate;
+    }
+
+    public Set<ADUser> getADAccounts() {
+        return adUsers;
+    }
+
+    public void setADAccounts(Set<ADUser> accounts) {
+        this.adUsers = accounts;
+    }
+
+    private void addADAccount(ADUser account) {
+        if (account == null) {
+            return;
+        }
+        adUsers.add(account);
+    }
+
+    private void removeADAccount(ADUser account) {
+        if (account == null) {
+            return;
+        }
+        adUsers.remove(account);
+    }
+
+    public Set<Role> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Set<Role> roles) {
+        if (roles == null) {
+            return;
+        }
+        this.roles = roles;
+    }
+    public void addRole(Role role) {
+        if (role == null) {
+            return;
+        }
+        roles.add(role);
+    }
+
+    public void removeRole(Role role) {
+        if (role == null) {
+            return;
+        }
+        roles.remove(role);
+    }
+
+    public void removeAllRoles() {
+        roles.clear();
     }
 
     @Override
@@ -182,11 +181,14 @@ public class Person extends AbstractEntity {
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
         Person person = (Person) o;
-        return Objects.equals(centralAccountName, person.centralAccountName) && Objects.equals(lastName, person.lastName) && Objects.equals(firstName, person.firstName);
+        return Objects.equals(centralAccountName, person.centralAccountName)
+                && Objects.equals(lastName, person.lastName)
+                && Objects.equals(firstName, person.firstName);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), centralAccountName, lastName, firstName);
     }
+
 }

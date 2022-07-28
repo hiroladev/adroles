@@ -11,6 +11,18 @@ public interface RoleRepository extends JpaRepository<Role, Integer> {
 
     @Query("select r from Role r " +
             "where lower(r.name) like lower(concat('%', :searchTerm, '%')) " +
-            "or lower(r.description) like lower(concat('%', :searchTerm, '%'))")
+            "or lower(r.description) like lower(concat('%', :searchTerm, '%')) " +
+            "order by r.name")
     List<Role> search(@Param("searchTerm") String searchTerm);
+
+    @Query("select r from Role r " +
+            "where r.isOrgRole = true " +
+            "and (lower(r.name) like lower(concat('%', :searchTerm, '%')) " +
+            "or lower(r.description) like lower(concat('%', :searchTerm, '%'))) " +
+            "order by r.name")
+    List<Role> searchOrgUnits(@Param("searchTerm") String searchTerm);
+
+    List<Role> findByPersons_Id(Integer id);
+
+    List<Role> findByIsOrgRoleTrue();
 }

@@ -15,11 +15,13 @@ import de.hirola.adroles.data.entity.Role;
 import de.hirola.adroles.views.roles.RoleForm;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 public class PersonAssignRoleForm extends VerticalLayout {
   private Person person;
-  private final List<Role> selectedRoles = new ArrayList<>();
+  private final Set<Role> selectedRoles = new LinkedHashSet<>();
   private TextField personTexField;
   private final Grid<Role> grid = new Grid<>(Role.class, false);
 
@@ -31,10 +33,11 @@ public class PersonAssignRoleForm extends VerticalLayout {
   private void addComponents() {
 
     personTexField = new TextField(getTranslation("person"));
-    personTexField.setWidth(Global.DEFAULT_TEXT_FIELD_WIDTH, Unit.PIXELS);
+    personTexField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
     personTexField.setReadOnly(true);
     add(personTexField);
 
+    grid.addClassNames("role-grid");
     grid.setSizeFull();
     grid.addColumn(Role::getName).setHeader(getTranslation("name"))
             .setSortable(true);
@@ -89,15 +92,14 @@ public class PersonAssignRoleForm extends VerticalLayout {
       // add assigned roles to selected list
       selectedRoles.clear();
       selectedRoles.addAll(person.getRoles());
-      for (Role role: selectedRoles) {
-        grid.select(role);
-      }
+      grid.asMultiSelect().select(selectedRoles);
     }
   }
   private void validateAndSave() {
     if (person.getRoles().isEmpty()) {
       person.setRoles(selectedRoles);
     }  else {
+      person.removeAllRoles();
       for (Role role: selectedRoles) {
         person.addRole(role);
       }
