@@ -12,10 +12,8 @@ import javax.annotation.security.PermitAll;
 @PageTitle("Settings - Roles | AD-Roles")
 @PermitAll
 public class RoleSettingsTabView extends VerticalLayout {
-    private final IdentityService service;
 
     public RoleSettingsTabView(IdentityService service) {
-        this.service = service;
         addClassName("dashboard-view");
         setDefaultHorizontalComponentAlignment(Alignment.START);
         add(SettingsTabBar.getTabs(2));

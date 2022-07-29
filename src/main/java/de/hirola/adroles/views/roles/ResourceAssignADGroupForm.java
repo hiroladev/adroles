@@ -1,9 +1,8 @@
-package de.hirola.adroles.views.organizations;
+package de.hirola.adroles.views.roles;
 
 import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
@@ -23,30 +22,32 @@ import de.hirola.adroles.data.entity.Person;
 import de.hirola.adroles.data.entity.Role;
 import de.hirola.adroles.service.IdentityService;
 
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
-public class OrgUnitAssignPersonForm extends VerticalLayout {
+public class ResourceAssignADGroupForm extends VerticalLayout {
   private final IdentityService identityService;
-  private Role orgUnit;
+  private Role role;
   private final Set<Person> selectedPersons = new LinkedHashSet<>();
-  private TextField orgUnitTexField, searchField;
+  private TextField roleTexField, searchField;
   private Button assignFromPersonsButton;
   private final Grid<Person> grid = new Grid<>(Person.class, false);
 
   private GridListDataView<Person> dataView;
-  public OrgUnitAssignPersonForm(IdentityService identityService) {
+  public ResourceAssignADGroupForm(IdentityService identityService) {
     this.identityService = identityService;
-    addClassName("org-assign-person-form");
+    addClassName("role-assign-adgroup-form");
     addComponents();
   }
 
   private void addComponents() {
 
-    orgUnitTexField = new TextField(getTranslation("orgUnit"));
-    orgUnitTexField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
-    orgUnitTexField.setReadOnly(true);
-    add(orgUnitTexField);
+    roleTexField = new TextField(getTranslation("org"));
+    roleTexField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+    roleTexField.setReadOnly(true);
+    add(roleTexField);
 
     searchField = new TextField();
     searchField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
@@ -60,7 +61,7 @@ public class OrgUnitAssignPersonForm extends VerticalLayout {
     });
     add(searchField);
 
-    assignFromPersonsButton = new Button(getTranslation("orgUnits.assignFromPersons"), new Icon(VaadinIcon.DOWNLOAD));
+    assignFromPersonsButton = new Button(getTranslation("org.assignFromPersons"), new Icon(VaadinIcon.DOWNLOAD));
     assignFromPersonsButton.addThemeVariants(ButtonVariant.LUMO_ICON);
     assignFromPersonsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
     assignFromPersonsButton.addClickListener(click -> assignFromPersons());
@@ -117,17 +118,17 @@ public class OrgUnitAssignPersonForm extends VerticalLayout {
     add(buttonsLayout);
   }
 
-  public void setData(Role orgUnit, List<Person> persons) {
-    this.orgUnit = orgUnit;
-    if (orgUnit != null && persons != null) {
+  public void setData(Role role, List<Person> persons) {
+    this.role = role;
+    if (role != null && persons != null) {
       // build org unit info string
-      StringBuilder orgUnitInfos = new StringBuilder(orgUnit.getName());
-      if (orgUnit.getDescription().length() > 0) {
+      StringBuilder orgUnitInfos = new StringBuilder(role.getName());
+      if (role.getDescription().length() > 0) {
         orgUnitInfos.append(" (");
-        orgUnitInfos.append(orgUnit.getDescription());
+        orgUnitInfos.append(role.getDescription());
         orgUnitInfos.append(")");
       }
-      orgUnitTexField.setValue(orgUnitInfos.toString());
+      roleTexField.setValue(orgUnitInfos.toString());
 
       // disable the assign button, if no persons available
       assignFromPersonsButton.setEnabled(persons.size() > 0);
@@ -148,22 +149,19 @@ public class OrgUnitAssignPersonForm extends VerticalLayout {
       });
 
       // show first assigned persons
-      dataView.setSortOrder(new ValueProvider<Person, String>() {
-        @Override
-        public String apply(Person person) {
-          if (person == null) {
-            return "";
-          }
-          if (selectedPersons.contains(person)) {
-            return getTranslation("assigned");
-          }
-          return getTranslation("notAssigned");
+      dataView.setSortOrder((ValueProvider<Person, String>) person -> {
+        if (person == null) {
+          return "";
         }
+        if (selectedPersons.contains(person)) {
+          return getTranslation("assigned");
+        }
+        return getTranslation("notAssigned");
       }, SortDirection.DESCENDING);
 
       // add assigned roles to selected list
       selectedPersons.clear();
-      selectedPersons.addAll(orgUnit.getPersons());
+      selectedPersons.addAll(role.getPersons());
       grid.asMultiSelect().select(selectedPersons);
       grid.getColumnByKey(Global.Component.FOOTER_COLUMN_KEY)
               .setFooter(String.format(getTranslation("persons.assigned") + ": %s", selectedPersons.size()));
@@ -175,43 +173,43 @@ public class OrgUnitAssignPersonForm extends VerticalLayout {
   }
 
   private void assignFromPersons() {
-    selectedPersons.addAll(identityService.findAllPersonsWithDepartmentName(orgUnit.getName()));
+    selectedPersons.addAll(identityService.findAllPersonsWithDepartmentName(role.getName()));
     grid.getColumnByKey(Global.Component.FOOTER_COLUMN_KEY)
             .setFooter(String.format(getTranslation("persons.assigned") + ": %s", selectedPersons.size()));
     grid.asMultiSelect().select(selectedPersons);
   }
   private void validateAndSave() {
-    if (orgUnit.getPersons().isEmpty()) {
-      orgUnit.setPersons(selectedPersons);
+    if (role.getPersons().isEmpty()) {
+      role.setPersons(selectedPersons);
     }  else {
-      orgUnit.removeAllPersons();
-      orgUnit.setPersons(selectedPersons);
+      role.removeAllPersons();
+      role.setPersons(selectedPersons);
     }
-    fireEvent(new SaveEvent(this, orgUnit));
+    fireEvent(new SaveEvent(this, role));
   }
 
   // Events
-  public static abstract class OrgAssignPersonFormEvent extends ComponentEvent<OrgUnitAssignPersonForm> {
-    private final Role orgUnit;
+  public static abstract class RoleAssignPersonFormEvent extends ComponentEvent<ResourceAssignADGroupForm> {
+    private final Role role;
 
-    protected OrgAssignPersonFormEvent(OrgUnitAssignPersonForm source, Role orgUnit) {
+    protected RoleAssignPersonFormEvent(ResourceAssignADGroupForm source, Role role) {
       super(source, false);
-      this.orgUnit = orgUnit;
+      this.role = role;
     }
 
     public Role getOrgUnit() {
-      return orgUnit;
+      return role;
     }
   }
 
-  public static class SaveEvent extends OrgAssignPersonFormEvent {
-    SaveEvent(OrgUnitAssignPersonForm source, Role orgUnit) {
-      super(source, orgUnit);
+  public static class SaveEvent extends RoleAssignPersonFormEvent {
+    SaveEvent(ResourceAssignADGroupForm source, Role role) {
+      super(source, role);
     }
   }
 
-  public static class CloseEvent extends OrgAssignPersonFormEvent {
-    CloseEvent(OrgUnitAssignPersonForm source) {
+  public static class CloseEvent extends RoleAssignPersonFormEvent {
+    CloseEvent(ResourceAssignADGroupForm source) {
       super(source, null);
     }
   }

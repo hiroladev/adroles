@@ -1,6 +1,5 @@
 package de.hirola.adroles.views.persons;
 
-import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.textfield.TextArea;
@@ -227,7 +226,7 @@ public class PersonListView extends VerticalLayout {
         closePersonForm();
         enableComponents(false);
         assignRoleForm.setVisible(true);
-        assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null));
+        assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null, null));
         addClassName("editing");
     }
 

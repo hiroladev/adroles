@@ -7,7 +7,7 @@ import javax.persistence.Entity;
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
  * This software us licensed under the AGPL-3.0 or later.
- *
+ * <p>
  *  Needed for Spring security.
  *
  * @author Michael Schmidt (Hirola)

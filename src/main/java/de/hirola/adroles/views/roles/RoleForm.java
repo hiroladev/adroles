@@ -11,24 +11,30 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.BeanValidationBinder;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.shared.Registration;
 import de.hirola.adroles.Global;
+import de.hirola.adroles.data.entity.RoleResource;
 import de.hirola.adroles.data.entity.Role;
+
+import java.util.Hashtable;
 
 public class RoleForm extends FormLayout {
   private Role role;
+  private final Hashtable<String, RoleResource> roleResourceList;
   private  final Binder<Role> binder = new BeanValidationBinder< >(Role.class);
   private final TextField name = new TextField(getTranslation("name"));
   private final TextField description = new TextField(getTranslation("description"));
   private final Checkbox isAdminRole = new Checkbox(getTranslation("adminRole"));
-  private final Checkbox isOrgUnitRole = new Checkbox(getTranslation("orgRole"));
-  private Button assignPersonsButton, assignADGroupsButton, saveButton;
+  final RadioButtonGroup<String> roleResourceRadioGroup = new RadioButtonGroup<>();
+  private Button saveButton;
 
-  public RoleForm() {
+  public RoleForm(Hashtable<String, RoleResource> roleResourceList) {
+    this.roleResourceList = roleResourceList;
     addClassName("role-form");
     setResponsiveSteps(new ResponsiveStep("500px", 1));
     addComponents();
@@ -41,15 +47,19 @@ public class RoleForm extends FormLayout {
     name.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
     description.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
 
-    assignPersonsButton = new Button(getTranslation("assignPersons"), new Icon(VaadinIcon.PLUS));
+    roleResourceRadioGroup.setLabel(getTranslation("roleResource"));
+    roleResourceRadioGroup.setItems(getTranslation("standard"), getTranslation("org"), getTranslation("project"),
+            getTranslation("fileShare"));
+
+    Button assignPersonsButton = new Button(getTranslation("assignPersons"), new Icon(VaadinIcon.PLUS));
     assignPersonsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
     assignPersonsButton.addClickListener(event -> fireEvent(new AssignPersonsEvent(this, role)));
 
-    assignADGroupsButton = new Button(getTranslation("assignADGroups"), new Icon(VaadinIcon.PLUS));
+    Button assignADGroupsButton = new Button(getTranslation("assignADGroups"), new Icon(VaadinIcon.PLUS));
     assignADGroupsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
     assignADGroupsButton.addClickListener(event -> fireEvent(new AssignADGroupsEvent(this, role)));
 
-    VerticalLayout formsLayout = new VerticalLayout(name, description, isAdminRole, isOrgUnitRole,
+    VerticalLayout formsLayout = new VerticalLayout(name, description, isAdminRole, roleResourceRadioGroup,
             assignPersonsButton, assignADGroupsButton);
     formsLayout.setPadding(true);
 
@@ -76,19 +86,34 @@ public class RoleForm extends FormLayout {
   public void setRole(Role role) {
     this.role = role;
     binder.readBean(role);
-    if (role != null) { // workaround: boolean not (correct) bound as instance field
+    if (role != null) {
       isAdminRole.setValue(role.isAdminRole());
-      isOrgUnitRole.setValue(role.isOrgRole());
+      RoleResource roleResource = role.getRoleResource();
+      if (roleResource != null) {
+        if (roleResource.isOrgResource()) {
+          roleResourceRadioGroup.setValue(getTranslation("org"));
+        } else if (roleResource.isProjectResource()) {
+          roleResourceRadioGroup.setValue(getTranslation("project"));
+        } else if (roleResource.isFileShareResource()) {
+          roleResourceRadioGroup.setValue(getTranslation("fileShare"));
+        } else {
+          roleResourceRadioGroup.setValue(getTranslation("standard"));
+        }
+      }
+
     } else {
       isAdminRole.setValue(false);
-      isOrgUnitRole.setValue(false);
+      roleResourceRadioGroup.setValue(getTranslation("standard"));
     }
   }
 
   private void validateAndSave() {
     try {
       role.setAdminRole(isAdminRole.getValue()); // workaround: boolean not (correct) bound as instance field
-      role.setOrgRole(isOrgUnitRole.getValue());
+      RoleResource roleResource = roleResourceList.get(roleResourceRadioGroup.getValue());
+      if (roleResource != null) {
+        role.setRoleResource(roleResource);
+      }
       binder.writeBean(role);
       fireEvent(new SaveEvent(this, role));
     } catch (ValidationException exception) {

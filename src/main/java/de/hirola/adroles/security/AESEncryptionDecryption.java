@@ -14,14 +14,15 @@ import javax.validation.constraints.NotNull;
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
  * This software us licensed under the AGPL-3.0 or later.
- *
+ * <p>
  * A simple util to encrypt and decrypt strings.
  * The secret key is read from the configuration.
  *
  * @author Michael Schmidt (Hirola)
  * @since v0.1
  */
-public final class AESEncryptionDecryption {
+public enum AESEncryptionDecryption {
+    ;
     private static final String ALGORITHM = "AES";
 
     public static String encrypt(@NotNull String stringToEncrypt) throws GeneralSecurityException {

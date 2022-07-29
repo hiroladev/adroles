@@ -38,6 +38,7 @@ public class IdentityService {
     private final ActiveDirectoryRepository activeDirectoryRepository;
     private  final PersonRepository personRepository;
     private  final RoleRepository roleRepository;
+    private final RoleResourceRepository roleResourceRepository;
     private final ADUserRepository adUserRepository;
     private final ADGroupRepository adGroupRepository;
     private QueryRequest queryRequest = null;
@@ -45,11 +46,13 @@ public class IdentityService {
     public IdentityService(ActiveDirectoryRepository activeDirectoryRepository,
                            PersonRepository personRepository,
                            RoleRepository roleRepository,
+                           RoleResourceRepository roleResourceRepository,
                            ADUserRepository adUserRepository,
                            ADGroupRepository adGroupRepository) {
         this.activeDirectoryRepository = activeDirectoryRepository;
         this.personRepository = personRepository;
         this.roleRepository = roleRepository;
+        this.roleResourceRepository = roleResourceRepository;
         this.adUserRepository = adUserRepository;
         this.adGroupRepository = adGroupRepository;
         // we manage only one AD
@@ -65,6 +68,99 @@ public class IdentityService {
         } else {
             activeDirectory = new ActiveDirectory();
         }
+    }
+
+    public @Nullable RoleResource getRoleResource(int type) {
+        switch (type) {
+            case Global.ROLE_RESOURCE.ORG_ROLE:
+                Optional<RoleResource> optionalOrgResource = roleResourceRepository.getOrgResource();
+                if (optionalOrgResource.isPresent()) {
+                    return optionalOrgResource.get();
+                }
+                // create resource for org units
+                RoleResource orgRoleResource = new RoleResource();
+                orgRoleResource.setName(UI.getCurrent().getTranslation("org"));
+                orgRoleResource.setDescription(UI.getCurrent().getTranslation("org"));
+                orgRoleResource.setViewClassName("org-view");
+                orgRoleResource.setAddResourceTranslationKey("addOrg");
+                orgRoleResource.setDeleteResourcesTranslationKey("deleteOrgs");
+                orgRoleResource.setOrgResource(true);
+                try {
+                    roleResourceRepository.save(orgRoleResource);
+                    logger.debug("Role resource for orgs created.");
+                    return orgRoleResource;
+                } catch (Exception exception) {
+                    logger.debug("Error while creating resource for orgs.", exception);
+                    return  null;
+                }
+            case Global.ROLE_RESOURCE.PROJECT_ROLE:
+                Optional<RoleResource> optionalProjectResource = roleResourceRepository.getProjResource();
+                if (optionalProjectResource.isPresent()) {
+                    return optionalProjectResource.get();
+                }
+                // create resource for org units
+                RoleResource projRoleResource = new RoleResource();
+                projRoleResource.setName(UI.getCurrent().getTranslation("project"));
+                projRoleResource.setDescription(UI.getCurrent().getTranslation("project"));
+                projRoleResource.setViewClassName("project-view");
+                projRoleResource.setAddResourceTranslationKey("addProject");
+                projRoleResource.setDeleteResourcesTranslationKey("deleteProjects");
+                projRoleResource.setOrgResource(true);
+                try {
+                    roleResourceRepository.save(projRoleResource);
+                    logger.debug("Role resource for projects created.");
+                    return projRoleResource;
+                } catch (Exception exception) {
+                    logger.debug("Error while creating resource for projects.", exception);
+                    return  null;
+                }
+            case Global.ROLE_RESOURCE.FILE_SHARE_ROLE:
+                Optional<RoleResource> optionalShareResource = roleResourceRepository.getFileShareResource();
+                if (optionalShareResource.isPresent()) {
+                    return optionalShareResource.get();
+                }
+                // create resource for org units
+                RoleResource shareRoleResource = new RoleResource();
+                shareRoleResource.setName(UI.getCurrent().getTranslation("fileShare"));
+                shareRoleResource.setDescription(UI.getCurrent().getTranslation("fileShare"));
+                shareRoleResource.setViewClassName("fileShare-view");
+                shareRoleResource.setAddResourceTranslationKey("addFileShare");
+                shareRoleResource.setDeleteResourcesTranslationKey("deleteFileShares");
+                shareRoleResource.setFileShareResource(true);
+                try {
+                    roleResourceRepository.save(shareRoleResource);
+                    logger.debug("Role resource for file shares created.");
+                    return shareRoleResource;
+                } catch (Exception exception) {
+                    logger.debug("Error while creating resource for file shares.", exception);
+                    return  null;
+                }
+            default :
+                Optional<RoleResource> optionalResource = roleResourceRepository.getDefaultResource();
+                if (optionalResource.isPresent()) {
+                    return optionalResource.get();
+                }
+                // create resource for org units
+                RoleResource defaultRoleResource = new RoleResource();
+                defaultRoleResource.setName(UI.getCurrent().getTranslation("role"));
+                defaultRoleResource.setDescription(UI.getCurrent().getTranslation("role"));
+                defaultRoleResource.setViewClassName("role-view");
+                defaultRoleResource.setAddResourceTranslationKey("addRole");
+                defaultRoleResource.setDeleteResourcesTranslationKey("deleteRole");
+                defaultRoleResource.setDefaultResource();
+                try {
+                    roleResourceRepository.save(defaultRoleResource);
+                    logger.debug("Standard role resource created.");
+                    return defaultRoleResource;
+                } catch (Exception exception) {
+                    logger.debug("Error while creating default resource for roles.", exception);
+                    return  null;
+                }
+        }
+    }
+
+    public List<RoleResource> getAllRoleResources() {
+        return roleResourceRepository.findAll();
     }
 
     public ActiveDirectory getActiveDirectory() {
@@ -128,16 +224,19 @@ public class IdentityService {
         }
     }
 
-    public List<Role> findAllRoles(@Nullable String stringFilter) {
-        if (stringFilter == null || stringFilter.isEmpty()) {
+    public List<Role> findAllRoles(@Nullable String stringFilter, @Nullable RoleResource roleResource) {
+        if (stringFilter == null || stringFilter.isEmpty() || roleResource == null) {
             return roleRepository.findAll();
         } else {
+            if (roleResource.isOrgResource()) {
+                return roleRepository.searchOrg(stringFilter);
+            } else if (roleResource.isProjectResource()) {
+                return roleRepository.searchProject(stringFilter);
+            } else if (roleResource.isFileShareResource()) {
+                return roleRepository.searchFileShare(stringFilter);
+            }
             return roleRepository.search(stringFilter);
         }
-    }
-
-    public List<Role> findAllOrgUnits(String value) {
-        return roleRepository.searchOrgUnits(value);
     }
 
     public List<ADUser> findAllADUsers(String value) {
@@ -152,6 +251,21 @@ public class IdentityService {
         return personRepository.getUniqueDepartmentNames();
     }
 
+    public long countRoles(@Nullable RoleResource roleResource) {
+        if (roleResource == null) {
+            return roleRepository.count();
+        }
+        if (roleResource.isOrgResource()) {
+            return roleRepository.countByRoleResource_IsOrgResourceTrue();
+        }
+        if (roleResource.isProjectResource()) {
+            return roleRepository.countByRoleResource_IsProjectResourceTrue();
+        }
+        if (roleResource.isFileShareResource()) {
+            return roleRepository.countByRoleResource_IsFileShareResourceTrue();
+        }
+        return roleRepository.count();
+    }
     public long countPersons() {
         return personRepository.count();
     }
@@ -166,14 +280,6 @@ public class IdentityService {
 
     public long countAdminGroups() {
         return adGroupRepository.countByIsAdminGroupTrue();
-    }
-
-    public long countRoles() {
-        return roleRepository.count();
-    }
-
-    public long countOrganisations() {
-        return roleRepository.findByIsOrgRoleTrue().size();
     }
 
     public long countPasswordNotExpires() {
@@ -258,6 +364,17 @@ public class IdentityService {
     }
 
     public boolean importOrgUnitsFromPersons(boolean onlyDifferences) {
+        Optional<RoleResource> optionalResource = roleResourceRepository.getOrgResource();
+        RoleResource orgUnitRoleResource;
+        if (optionalResource.isPresent()) {
+            orgUnitRoleResource = optionalResource.get();
+        } else {
+            // try to create the role resource for org
+            if ((orgUnitRoleResource = getRoleResource(Global.ROLE_RESOURCE.ORG_ROLE)) == null){
+                logger.debug("Import org units from persons failed. There are no org unit resource.");
+                return false;
+            }
+        }
         try {
             // try to create org units from person attribute department
             if (onlyDifferences) {
@@ -265,7 +382,7 @@ public class IdentityService {
                 return false;
             } else {
                 // delete all org units (roles)
-                List<Role> orgUnits = roleRepository.findByIsOrgRoleTrue();
+                List<Role> orgUnits = roleRepository.findByRoleResource_IsOrgResourceTrueOrderByNameAsc();
                 for(Role orgUnit: orgUnits) {
                     deleteRoleComplete(orgUnit);
                 }
@@ -274,17 +391,19 @@ public class IdentityService {
                 List<String> departmentNames = getUniqueDepartmentNames();
                 for (String departmentName: departmentNames) {
                     Role orgUnit = new Role();
-                    orgUnit.setOrgRole(true);
+                    orgUnit.setRoleResource(orgUnitRoleResource);
                     orgUnit.setName(departmentName);
-                    orgUnit.setDescription(UI.getCurrent().getTranslation("importFromPersons"));
+                    orgUnit.setDescription(UI.getCurrent().getTranslation("importFromPersons.description"));
                     roleRepository.save(orgUnit);
+                    orgUnitRoleResource.addRole(orgUnit); // we need to save the relation on role resource
+                    roleResourceRepository.save(orgUnitRoleResource);
                     importedOrgUnits++;
                 }
                 logger.debug(importedOrgUnits + " org units imported from persons");
                 return true;
             }
         } catch (Exception exception) {
-            logger.debug("Import org units from persons failed: " + exception.getMessage());
+            logger.debug("Import org units from persons failed.", exception);
             return false;
         }
     }
@@ -311,13 +430,26 @@ public class IdentityService {
                     }
                 }
                 if (roleCanBeAdded) {
+                    // set the role resource
+                    RoleResource roleResource;
+                    if (isProjectByName(name)) {
+                        roleResource = getRoleResource(Global.ROLE_RESOURCE.PROJECT_ROLE);
+                    } else {
+                        roleResource = getRoleResource(Global.ROLE_RESOURCE.DEFAULT_ROLE);
+                    }
+                    if (roleResource == null) {
+                        logger.debug("Role " + name + " can not be imported. Role resource ist null.");
+                        break;
+                    }
                     // create a role from ad group
                     Role role = new Role();
                     role.setName(name);
                     role.setDescription(adGroup.getDescription());
-                    role.setAdminRole(isAdminGroupByName(name));
-                    role.setOrgRole(false);
+                    role.setAdminRole(isAdminByName(name)); // admin role
+                    role.setRoleResource(roleResource);
                     roleRepository.save(role);
+                    roleResource.addRole(role); // we need to save the relation on role resource
+                    roleResourceRepository.save(roleResource);
                     importedRoles++;
                 }
             }
@@ -450,10 +582,11 @@ public class IdentityService {
 
     @Transactional
     private void deleteRoleComplete(Role role) {
+
         Set<Person> persons = role.getPersons();
         for (Person person: persons) {
-            role.removePerson(person);
-            roleRepository.save(role);
+            person.removeRole(role);
+            personRepository.save(person);
         }
 
         Set<ADGroup> adGroups = role.getAdGroups();
@@ -517,44 +650,52 @@ public class IdentityService {
 
     private List<EntityResponse> getADUser() {
         if (isConnected) {
-            queryRequest.setObjectType(ObjectType.USER);
-            //TODO: set filter by config
-            // e.g. load only enabled accounts
-            queryRequest.addSearchSentence(new QueryAssembler()
-                    .addPhrase("userAccountControl", PhraseOperator.EQUAL, "512")
-                    .addPhrase("userAccountControl", PhraseOperator.EQUAL, "66048")
-                    .closeSentence(SentenceOperator.OR));
+            try {
+                queryRequest.setObjectType(ObjectType.USER);
+                //TODO: set filter by config
+                // e.g. load only enabled accounts
+                queryRequest.addSearchSentence(new QueryAssembler()
+                        .addPhrase("userAccountControl", PhraseOperator.EQUAL, "512")
+                        .addPhrase("userAccountControl", PhraseOperator.EQUAL, "66048")
+                        .closeSentence(SentenceOperator.OR));
 
-            // get all fields needed for entities person and ad account
-            queryRequest.addRequestedField(Global.ADAttributes.DISPLAY_NAME);
-            queryRequest.addRequestedField(Global.ADAttributes.DESCRIPTION);
-            queryRequest.addRequestedField(FieldType.LOGON_NAME);
-            queryRequest.addRequestedField(FieldType.DISTINGUISHED_NAME);
-            queryRequest.addRequestedField(FieldType.FIRST_NAME);
-            queryRequest.addRequestedField(FieldType.LAST_NAME);
-            queryRequest.addRequestedField(FieldType.DEPARTMENT);
-            queryRequest.addRequestedField(FieldType.EMAIL);
-            queryRequest.addRequestedField(FieldType.PHONE_NUMBER);
-            queryRequest.addRequestedField(FieldType.MOBILE_PHONE);
-            queryRequest.addRequestedField(FieldType.USER_ACCOUNT_CONTROL);
-            Connector connector = new Connector(queryRequest);
-            QueryResponse queryResponse = connector.execute();
-            return queryResponse.getAll();
+                // get all fields needed for entities person and ad account
+                queryRequest.addRequestedField(Global.ADAttributes.DISPLAY_NAME);
+                queryRequest.addRequestedField(Global.ADAttributes.DESCRIPTION);
+                queryRequest.addRequestedField(FieldType.LOGON_NAME);
+                queryRequest.addRequestedField(FieldType.DISTINGUISHED_NAME);
+                queryRequest.addRequestedField(FieldType.FIRST_NAME);
+                queryRequest.addRequestedField(FieldType.LAST_NAME);
+                queryRequest.addRequestedField(FieldType.DEPARTMENT);
+                queryRequest.addRequestedField(FieldType.EMAIL);
+                queryRequest.addRequestedField(FieldType.PHONE_NUMBER);
+                queryRequest.addRequestedField(FieldType.MOBILE_PHONE);
+                queryRequest.addRequestedField(FieldType.USER_ACCOUNT_CONTROL);
+                Connector connector = new Connector(queryRequest);
+                QueryResponse queryResponse = connector.execute();
+                return queryResponse.getAll();
+            } catch (Exception exception) {
+                logger.debug("Error occurred while loading users from AD.", exception);
+            }
         }
         return new ArrayList<>();
     }
 
     private List<EntityResponse> getADGroups() {
         if (isConnected) {
-            queryRequest.setObjectType(ObjectType.GROUP);
-            // get all fields needed for entity ad group
-            queryRequest.addRequestedField(Global.ADAttributes.GROUP_TYPE);
-            queryRequest.addRequestedField(Global.ADAttributes.DESCRIPTION);
-            queryRequest.addRequestedField(FieldType.COMMON_NAME);
-            queryRequest.addRequestedField(FieldType.DISTINGUISHED_NAME);
-            Connector connector = new Connector(queryRequest);
-            QueryResponse queryResponse = connector.execute();
-            return queryResponse.getAll();
+            try {
+                queryRequest.setObjectType(ObjectType.GROUP);
+                // get all fields needed for entity ad group
+                queryRequest.addRequestedField(Global.ADAttributes.GROUP_TYPE);
+                queryRequest.addRequestedField(Global.ADAttributes.DESCRIPTION);
+                queryRequest.addRequestedField(FieldType.COMMON_NAME);
+                queryRequest.addRequestedField(FieldType.DISTINGUISHED_NAME);
+                Connector connector = new Connector(queryRequest);
+                QueryResponse queryResponse = connector.execute();
+                return queryResponse.getAll();
+            } catch (Exception exception) {
+                logger.debug("Error occurred while loading groups from AD.", exception);
+            }
         }
         return new ArrayList<>();
     }
@@ -612,7 +753,7 @@ public class IdentityService {
                         String name = (String) field.getValue();
                         adGroup.setName(name);
                         // check for "admin group"
-                        adGroup.setAdminGroup(isAdminGroupByName(name));
+                        adGroup.setAdminGroup(isAdminByName(name));
                     }
                     if (fieldType.equals(FieldType.DISTINGUISHED_NAME)) {
                         adGroup.setDistinguishedName((String) field.getValue());
@@ -782,8 +923,15 @@ public class IdentityService {
         return Global.ADGroupType.SECURITY;
     }
 
-    private boolean isAdminGroupByName(String name) {
+    private boolean isAdminByName(String name) {
         Pattern pattern = Pattern.compile(Pattern.quote(Global.IMPORT_SETTINGS.ADMIN_GROUP_TEXT),
+                Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(name);
+        return matcher.find();
+    }
+
+    private boolean isProjectByName(String name) {
+        Pattern pattern = Pattern.compile(Pattern.quote(Global.IMPORT_SETTINGS.PROJECT_ROLE_TEXT),
                 Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(name);
         return matcher.find();

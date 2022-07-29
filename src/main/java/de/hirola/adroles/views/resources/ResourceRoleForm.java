@@ -1,4 +1,4 @@
-package de.hirola.adroles.views.organizations;
+package de.hirola.adroles.views.resources;
 
 import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentEventListener;
@@ -18,14 +18,14 @@ import com.vaadin.flow.shared.Registration;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Role;
 
-public class OrgUnitForm extends FormLayout {
+public class ResourceRoleForm extends FormLayout {
   private Role orgUnit;
   private  final Binder<Role> binder = new BeanValidationBinder<>(Role.class);
   private final TextField name = new TextField(getTranslation("name"));
   private final TextField description = new TextField(getTranslation("description"));
   private Button assignPersonsButton, assignRolesButton, saveButton;
 
-  public OrgUnitForm() {
+  public ResourceRoleForm() {
     addClassName("org-unit-form");
     setResponsiveSteps(new ResponsiveStep("500px", 1));
     addComponents();
@@ -69,7 +69,7 @@ public class OrgUnitForm extends FormLayout {
     add(formsLayout, buttonsLayout_1);
   }
 
-  public void setOrgUnit(Role orgUnit) {
+  public void setResourceRole(Role orgUnit) {
     this.orgUnit = orgUnit;
     binder.readBean(this.orgUnit);
     if (this.orgUnit != null) {
@@ -93,46 +93,46 @@ public class OrgUnitForm extends FormLayout {
   }
 
   // Events
-  public static abstract class OrgUnitFormEvent extends ComponentEvent<OrgUnitForm> {
+  public static abstract class OrgUnitFormEvent extends ComponentEvent<ResourceRoleForm> {
     private final Role orgUnit;
 
-    protected OrgUnitFormEvent(OrgUnitForm source, Role orgUnit) {
+    protected OrgUnitFormEvent(ResourceRoleForm source, Role orgUnit) {
       super(source, false);
       this.orgUnit = orgUnit;
     }
 
-    public Role getOrgUnit() {
+    public Role getItem() {
       return orgUnit;
     }
   }
 
   public static class SaveEvent extends OrgUnitFormEvent {
-    SaveEvent(OrgUnitForm source, Role orgUnit) {
+    SaveEvent(ResourceRoleForm source, Role orgUnit) {
       super(source, orgUnit);
     }
   }
 
   public static class AssignADGroupsEvent extends OrgUnitFormEvent {
-    AssignADGroupsEvent(OrgUnitForm source, Role orgUnit) {
+    AssignADGroupsEvent(ResourceRoleForm source, Role orgUnit) {
       super(source, orgUnit);
     }
   }
 
   public static class AssignPersonsEvent extends OrgUnitFormEvent {
-    AssignPersonsEvent(OrgUnitForm source, Role orgUnit) {
+    AssignPersonsEvent(ResourceRoleForm source, Role orgUnit) {
       super(source, orgUnit);
     }
   }
 
   public static class DeleteEvent extends OrgUnitFormEvent {
-    DeleteEvent(OrgUnitForm source, Role orgUnit) {
+    DeleteEvent(ResourceRoleForm source, Role orgUnit) {
       super(source, orgUnit);
     }
 
   }
 
   public static class CloseEvent extends OrgUnitFormEvent {
-    CloseEvent(OrgUnitForm source) {
+    CloseEvent(ResourceRoleForm source) {
       super(source, null);
     }
   }

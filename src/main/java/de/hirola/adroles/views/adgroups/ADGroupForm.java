@@ -25,8 +25,8 @@ public class ADGroupForm extends FormLayout {
   private final TextField name = new TextField(getTranslation("name"));
   private final TextField distinguishedName = new TextField(getTranslation("distinguishedName"));
   private final TextField description = new TextField(getTranslation("description"));
-  RadioButtonGroup<String> groupAreaRadioGroup = new RadioButtonGroup<>();
-  RadioButtonGroup<String> groupTypeRadioGroup = new RadioButtonGroup<>();
+  final RadioButtonGroup<String> groupAreaRadioGroup = new RadioButtonGroup<>();
+  final RadioButtonGroup<String> groupTypeRadioGroup = new RadioButtonGroup<>();
   private final Checkbox isAdminGroup = new Checkbox(getTranslation("adminGroup"));
   private Button saveButton;
 

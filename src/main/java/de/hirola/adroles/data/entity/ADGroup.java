@@ -1,8 +1,6 @@
 package de.hirola.adroles.data.entity;
 
-import de.hirola.adroles.Global;
 import de.hirola.adroles.data.AbstractEntity;
-import org.hibernate.Hibernate;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
@@ -15,7 +13,7 @@ import java.util.*;
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
  * This software us licensed under the AGPL-3.0 or later.
- *
+ * <p>
  * Represents a group in an Active Directory.
  *
  * @author Michael Schmidt (Hirola)

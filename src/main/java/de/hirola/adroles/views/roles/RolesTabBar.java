@@ -19,7 +19,6 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.router.RouterLink;
-import de.hirola.adroles.views.settings.BasicSettingsView;
 import de.hirola.adroles.views.settings.ConnectionSettingsTabView;
 import de.hirola.adroles.views.settings.DatabaseSettingsTabView;
 import de.hirola.adroles.views.settings.RoleSettingsTabView;
@@ -27,13 +26,14 @@ import de.hirola.adroles.views.settings.RoleSettingsTabView;
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
  * This software us licensed under the AGPL-3.0 or later.
- *
+ * <p>
  * The tabs for all roles dialogs.
  *
  * @author Michael Schmidt (Hirola)
  * @since v0.1
  */
-public final class RolesTabBar {
+public enum RolesTabBar {
+    ;
 
     public static Tabs getTabs(int selectedIndex) {
         Tabs tabs = new Tabs();

@@ -3,7 +3,6 @@ package de.hirola.adroles.views.roles;
 import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
@@ -45,7 +44,7 @@ public class RoleAssignPersonForm extends VerticalLayout {
 
   private void addComponents() {
 
-    orgUnitTexField = new TextField(getTranslation("orgUnit"));
+    orgUnitTexField = new TextField(getTranslation("org"));
     orgUnitTexField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
     orgUnitTexField.setReadOnly(true);
     add(orgUnitTexField);
@@ -62,7 +61,7 @@ public class RoleAssignPersonForm extends VerticalLayout {
     });
     add(searchField);
 
-    assignFromPersonsButton = new Button(getTranslation("orgUnits.assignFromPersons"), new Icon(VaadinIcon.DOWNLOAD));
+    assignFromPersonsButton = new Button(getTranslation("org.assignFromPersons"), new Icon(VaadinIcon.DOWNLOAD));
     assignFromPersonsButton.addThemeVariants(ButtonVariant.LUMO_ICON);
     assignFromPersonsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
     assignFromPersonsButton.addClickListener(click -> assignFromPersons());
@@ -150,17 +149,14 @@ public class RoleAssignPersonForm extends VerticalLayout {
       });
 
       // show first assigned persons
-      dataView.setSortOrder(new ValueProvider<Person, String>() {
-        @Override
-        public String apply(Person person) {
-          if (person == null) {
-            return "";
-          }
-          if (selectedPersons.contains(person)) {
-            return getTranslation("assigned");
-          }
-          return getTranslation("notAssigned");
+      dataView.setSortOrder((ValueProvider<Person, String>) person -> {
+        if (person == null) {
+          return "";
         }
+        if (selectedPersons.contains(person)) {
+          return getTranslation("assigned");
+        }
+        return getTranslation("notAssigned");
       }, SortDirection.DESCENDING);
 
       // add assigned roles to selected list

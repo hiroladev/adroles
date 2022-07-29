@@ -7,14 +7,11 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
-import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.shared.Registration;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Person;
 import de.hirola.adroles.data.entity.Role;
-import de.hirola.adroles.views.roles.RoleForm;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;

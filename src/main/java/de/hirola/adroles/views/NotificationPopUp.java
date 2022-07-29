@@ -19,7 +19,8 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 
-public class NotificationPopUp {
+public enum NotificationPopUp {
+    ;
 
     public static final int INFO = 0;
     public static final int ERROR = 1;
@@ -32,18 +33,14 @@ public class NotificationPopUp {
             Button closeButton = new Button(new Icon("lumo", "cross"));
             closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
             closeButton.getElement().setAttribute("aria-label", UI.getCurrent().getTranslation("close"));
-            closeButton.addClickListener(event -> {
-                notification.close();
-            });
+            closeButton.addClickListener(event -> notification.close());
 
             HorizontalLayout layout = new HorizontalLayout(text, closeButton);
             layout.setAlignItems(FlexComponent.Alignment.CENTER);
 
             notification.add(layout);
             closeButton.getElement().setAttribute("aria-label", "Close");
-            closeButton.addClickListener(event -> {
-                notification.close();
-            });
+            closeButton.addClickListener(event -> notification.close());
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
         } else {
             notification = Notification.show(message);

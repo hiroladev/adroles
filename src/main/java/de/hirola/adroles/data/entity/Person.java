@@ -14,7 +14,7 @@ import java.util.Set;
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
  * This software us licensed under the AGPL-3.0 or later.
- *
+ * <p>
  * A person is an employee of the company and can have multiple identities,
  * e.g. an account in the Active Directory.
  *

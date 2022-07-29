@@ -18,10 +18,6 @@ public class DataGenerator {
 
         return args -> {
             Logger logger = LoggerFactory.getLogger(getClass());
-            /*if (contactRepository.count() != 0L) {
-                logger.info("Using existing database");
-                return;
-            }*/
 
             logger.info("... generating 1 user entity for login ...");
             User user = new User();

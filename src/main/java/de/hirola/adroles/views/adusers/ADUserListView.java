@@ -239,7 +239,7 @@ public class ADUserListView extends VerticalLayout {
         closeADUserForm();
         enableComponents(false);
         assignRoleForm.setVisible(true);
-        assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null));
+        assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null, null));
         addClassName("editing");
     }
 

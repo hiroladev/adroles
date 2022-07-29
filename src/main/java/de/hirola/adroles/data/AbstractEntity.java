@@ -5,7 +5,7 @@ import javax.persistence.*;
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
  * This software us licensed under the AGPL-3.0 or later.
- *
+ * <p>
  * All entities extend this as super class.
  *
  * @author Michael Schmidt (Hirola)

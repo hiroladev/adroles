@@ -5,6 +5,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import de.hirola.adroles.Global;
+import de.hirola.adroles.data.entity.RoleResource;
 import de.hirola.adroles.service.IdentityService;
 
 import javax.annotation.security.PermitAll;
@@ -28,15 +29,20 @@ public class DashboardView extends VerticalLayout {
         personsCountLabel.setReadOnly(true);
         personsCountLabel.setValue(String.valueOf(identityService.countPersons()));
 
-        TextField orgUnitsCountLabel = new TextField(getTranslation("orgUnits.sum"));
+        TextField orgUnitsCountLabel = new TextField(getTranslation("org.sum"));
         orgUnitsCountLabel.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         orgUnitsCountLabel.setReadOnly(true);
-        orgUnitsCountLabel.setValue(String.valueOf(identityService.countOrganisations()));
+        RoleResource roleResource = identityService.getRoleResource(Global.ROLE_RESOURCE.ORG_ROLE);
+        if (roleResource != null) {
+            orgUnitsCountLabel.setValue(String.valueOf(identityService.countRoles(roleResource)));
+        } else {
+            orgUnitsCountLabel.setValue(getTranslation("notDetermined"));
+        }
 
-        TextField rolesCountLabel = new TextField(getTranslation("roles.sum"));
+        TextField rolesCountLabel = new TextField(getTranslation("role.sum"));
         rolesCountLabel.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         rolesCountLabel.setReadOnly(true);
-        rolesCountLabel.setValue(String.valueOf(identityService.countRoles()));
+        rolesCountLabel.setValue(String.valueOf(identityService.countRoles(null)));
 
         TextField adUsersCountLabel = new TextField(getTranslation("adUsers.sum"));
         adUsersCountLabel.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);

@@ -3,7 +3,6 @@ package de.hirola.adroles.views.adusers;
 import com.vaadin.flow.component.ComponentEvent;
 import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.Key;
-import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -17,7 +16,6 @@ import com.vaadin.flow.data.binder.ValidationException;
 import com.vaadin.flow.shared.Registration;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.ADUser;
-import de.hirola.adroles.data.entity.Person;
 
 public class ADUserForm extends FormLayout {
   private ADUser adUser;

@@ -119,7 +119,7 @@ public class ADGroupListView extends VerticalLayout {
 
     private void importADGroups() {
         Dialog dialog = new Dialog();
-        if (identityService.countPersons() > 0) {
+        if (identityService.countADGroups() > 0) {
             // data can be override
             dialog.setHeaderTitle(getTranslation("question.updateData"));
 
@@ -220,7 +220,7 @@ public class ADGroupListView extends VerticalLayout {
         closeADGroupForm();
         enableComponents(false);
         assignRoleForm.setVisible(true);
-        assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null));
+        assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null, null));
         addClassName("editing");
     }
 

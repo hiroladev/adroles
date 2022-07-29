@@ -11,7 +11,7 @@ import java.util.Set;
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
  * This software us licensed under the AGPL-3.0 or later.
- *
+ * <p>
  * Represents an account in an Active Directory.
  * A person can have multiple accounts, e.g. for administrative purposes.
  * Assignment / inheritance of permissions (via roles)

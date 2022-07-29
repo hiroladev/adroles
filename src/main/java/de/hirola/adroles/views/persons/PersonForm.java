@@ -1,6 +1,5 @@
 package de.hirola.adroles.views.persons;
 
-import com.vaadin.flow.component.Unit;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -52,7 +51,7 @@ public class PersonForm extends FormLayout {
     assignRolesButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
     assignRolesButton.addClickListener(event -> fireEvent(new AssignRolesEvent(this, person)));
 
-    assignOrganizationsButton = new Button(getTranslation("assignOrgUnits"), new Icon(VaadinIcon.PLUS));
+    assignOrganizationsButton = new Button(getTranslation("assignOrgs"), new Icon(VaadinIcon.PLUS));
     assignOrganizationsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
     assignOrganizationsButton.addClickListener(event -> fireEvent(new AssignOrgEvent(this, person)));
 

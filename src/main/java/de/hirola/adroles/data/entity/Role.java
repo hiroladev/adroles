@@ -2,6 +2,7 @@ package de.hirola.adroles.data.entity;
 
 import de.hirola.adroles.data.AbstractEntity;
 
+import javax.annotation.Nullable;
 import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
 import java.util.LinkedHashSet;
@@ -12,7 +13,7 @@ import java.util.Set;
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
  * This software us licensed under the AGPL-3.0 or later.
  *
- * A role summarizes authorizations, e.g. in AD.
+ * <P>A role summarizes authorizations, e.g. in AD.</P>
  *
  * @author Michael Schmidt (Hirola)
  * @since v0.1
@@ -23,8 +24,19 @@ public class Role extends AbstractEntity {
     @NotEmpty
     private String name;
     private String description;
-    private boolean isAdminRole;
-    private boolean isOrgRole; // an org is also a role
+    public boolean isAdminRole;
+
+    @ManyToOne(cascade = CascadeType.MERGE, fetch= FetchType.EAGER)
+    @JoinColumn(name = "role_resource_id")
+    private RoleResource roleResource;
+
+    @OneToOne(cascade = CascadeType.PERSIST, orphanRemoval = true)
+    @JoinColumn(name = "responsible_id")
+    private Person responsible;
+
+    @OneToOne(cascade = CascadeType.PERSIST, orphanRemoval = true)
+    @JoinColumn(name = "second_responsible_id")
+    private Person secondResponsible;
 
     @ManyToMany(cascade = CascadeType.PERSIST, fetch= FetchType.EAGER)
     @JoinTable(name = "role_adgroup",
@@ -37,14 +49,6 @@ public class Role extends AbstractEntity {
             joinColumns = @JoinColumn(name = "role_id"),
             inverseJoinColumns = @JoinColumn(name = "person_id"))
     private Set<Person> persons = new LinkedHashSet<>();
-
-    public void addPerson(Person person) {
-        persons.add(person);
-    }
-
-    public void removePerson(Person person) {
-        persons.remove(person);
-    }
 
     public String getName() {
         return Objects.requireNonNullElse(name, "");
@@ -70,12 +74,28 @@ public class Role extends AbstractEntity {
         isAdminRole = adminRole;
     }
 
-    public boolean isOrgRole() {
-        return isOrgRole;
+    public RoleResource getRoleResource() {
+        return roleResource;
     }
 
-    public void setOrgRole(boolean orgRole) {
-        isOrgRole = orgRole;
+    public void setRoleResource(RoleResource roleResource) {
+        this.roleResource = roleResource;
+    }
+
+    public @Nullable Person getResponsible() {
+        return responsible;
+    }
+
+    public void setResponsible(Person responsible) {
+        this.responsible = responsible;
+    }
+
+    public @Nullable Person getSecondResponsible() {
+        return secondResponsible;
+    }
+
+    public void setSecondResponsible(Person secondResponsible) {
+        this.secondResponsible = secondResponsible;
     }
 
     public Set<ADGroup> getAdGroups() {
@@ -113,6 +133,14 @@ public class Role extends AbstractEntity {
             return;
         }
         this.persons = persons;
+    }
+
+    public void addPerson(Person person) {
+        persons.add(person);
+    }
+
+    public void removePerson(Person person) {
+        persons.remove(person);
     }
 
     public void removeAllPersons() {

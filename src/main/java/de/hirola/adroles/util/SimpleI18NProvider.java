@@ -10,6 +10,7 @@ import java.util.ResourceBundle;
 
 import javax.annotation.PostConstruct;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +19,7 @@ import com.vaadin.flow.i18n.I18NProvider;
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
  * This software us licensed under the AGPL-3.0 or later.
- *
+ * <p>
  * Simple implementation of {@link I18NProvider}.
  * <p> Actual translations can be found in the translate_{lang_code}.properties files.
  * <p> Singleton scope.
@@ -32,6 +33,7 @@ public class SimpleI18NProvider implements I18NProvider {
     public static final java.util.Locale GERMAN = new Locale("de");
     // Use no-country versions, so that e.g. both en_US and en_GB work.
     public static final java.util.Locale ENGLISH = new Locale("en");
+    private final static Logger logger = LoggerFactory.getLogger(SimpleI18NProvider.class);
     private Map<String, ResourceBundle> localeMap;
 
     @PostConstruct
@@ -58,12 +60,10 @@ public class SimpleI18NProvider implements I18NProvider {
             return MessageFormat.format(rawString, params);
         } catch (final MissingResourceException exception) {
             // Translation not found, return error message instead of null as per API
-            LoggerFactory.getLogger(SimpleI18NProvider.class.getName())
-                    .warn("Missing resource", exception);
+            logger.debug("Missing key in translate resources: " + key, exception);
             return String.format("!{%s}", key);
-        } catch (final IllegalArgumentException e) {
-            e.printStackTrace(); // for devs to find where this happened
-            // Incorrect parameters
+        } catch (final IllegalArgumentException exception) {
+            logger.debug("Translation exception occurred.", exception);
             return rawString;
         }
     }
