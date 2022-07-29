@@ -89,7 +89,7 @@ public class RolesListView extends VerticalLayout {
                         } else if (roleResource.isFileShareResource()) {
                             return VaadinIcon.FOLDER.create();
                         } else {
-                            return VaadinIcon.CUBE.create();
+                            return VaadinIcon.CONNECT.create();
                         }
                     }
                     return VaadinIcon.CUBE.create();

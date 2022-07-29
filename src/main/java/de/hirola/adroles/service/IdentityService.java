@@ -105,7 +105,7 @@ public class IdentityService {
                 projRoleResource.setViewClassName("project-view");
                 projRoleResource.setAddResourceTranslationKey("addProject");
                 projRoleResource.setDeleteResourcesTranslationKey("deleteProjects");
-                projRoleResource.setOrgResource(true);
+                projRoleResource.setProjectResource(true);
                 try {
                     roleResourceRepository.save(projRoleResource);
                     logger.debug("Role resource for projects created.");
