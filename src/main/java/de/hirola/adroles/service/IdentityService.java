@@ -58,13 +58,7 @@ public class IdentityService {
         // we manage only one AD
         if (activeDirectoryRepository.count() == 1) {
             activeDirectory = activeDirectoryRepository.findAll().get(0);
-            try {
-                connect();
-                isConnected = true;
-            } catch (ConnectException exception) {
-                logger.debug("");
-                isConnected = false;
-            }
+            isConnected = connect();
         } else {
             activeDirectory = new ActiveDirectory();
         }
@@ -198,12 +192,8 @@ public class IdentityService {
     }
     public boolean isConnected() {
         if (!isConnected && activeDirectory.getId() != null) {
-            try {
-                connect();
-                isConnected = true;
-            } catch (ConnectException exception) {
-                isConnected = false;
-            }
+            // try to (re)-connect
+            isConnected = connect();
         }
         return isConnected;
     }
@@ -225,9 +215,7 @@ public class IdentityService {
     }
 
     public List<Role> findAllRoles(@Nullable String stringFilter, @Nullable RoleResource roleResource) {
-        if (stringFilter == null || stringFilter.isEmpty() || roleResource == null) {
-            return roleRepository.findAll();
-        } else {
+        if ((stringFilter != null && !stringFilter.isEmpty()) && roleResource != null) {
             if (roleResource.isOrgResource()) {
                 return roleRepository.searchOrg(stringFilter);
             } else if (roleResource.isProjectResource()) {
@@ -237,6 +225,16 @@ public class IdentityService {
             }
             return roleRepository.search(stringFilter);
         }
+        if ((stringFilter == null || stringFilter.isEmpty()) && roleResource != null) {
+            if (roleResource.isOrgResource()) {
+                return roleRepository.findByRoleResource_IsOrgResourceTrueOrderByNameAsc();
+            } else if (roleResource.isProjectResource()) {
+                return roleRepository.findByRoleResource_IsProjectResourceTrueOrderByNameAsc();
+            } else if (roleResource.isFileShareResource()) {
+                return roleRepository.findByRoleResource_IsFileShareResourceTrueOrderByNameAsc();
+            }
+        }
+        return roleRepository.findAll();
     }
 
     public List<ADUser> findAllADUsers(String value) {
@@ -582,70 +580,95 @@ public class IdentityService {
 
     @Transactional
     private void deleteRoleComplete(Role role) {
+        try {
+            Set<Person> persons = role.getPersons();
+            for (Person person: persons) {
+                person.removeRole(role);
+                personRepository.save(person);
+            }
 
-        Set<Person> persons = role.getPersons();
-        for (Person person: persons) {
-            person.removeRole(role);
-            personRepository.save(person);
+            Set<ADGroup> adGroups = role.getAdGroups();
+            for (ADGroup adGroup: adGroups) {
+                adGroup.removeRole(role);
+                adGroupRepository.save(adGroup);
+            }
+
+           roleRepository.delete(role);
+            logger.debug("Role " + role + " deleted.");
+        } catch (Exception exception) {
+            logger.debug("Error while deleting role " + role, exception);
         }
-
-        Set<ADGroup> adGroups = role.getAdGroups();
-        for (ADGroup adGroup: adGroups) {
-            adGroup.removeRole(role);
-            adGroupRepository.save(adGroup);
-        }
-
-        roleRepository.delete(role);
     }
 
     // delete all relations with this object
     @Transactional
     private void deletePersonComplete(Person person) {
-        Set<Role> roles = person.getRoles();
-        for (Role role: roles) {
-            role.removePerson(person);
-            roleRepository.save(role);
-        }
+        try {
+            Set<Role> roles = person.getRoles();
+            for (Role role: roles) {
+                role.removePerson(person);
+                roleRepository.save(role);
+            }
 
-        personRepository.delete(person);
+            personRepository.delete(person);
+            logger.debug("Person " + person + " deleted.");
+        } catch (Exception exception) {
+            logger.debug("Error while deleting person " + person, exception);
+        }
     }
 
     @Transactional
     private void deleteADUserComplete(ADUser adUser) {
-        adUserRepository.delete(adUser);
+        try {
+            adUserRepository.delete(adUser);
+            logger.debug("AD user " + adUser + " deleted.");
+        } catch (Exception exception) {
+            logger.debug("Error while deleting AD user " + adUser, exception);
+        }
     }
 
     @Transactional
     private void deleteADGroupComplete(ADGroup adGroup) {
-        adGroupRepository.delete(adGroup);
+        try {
+            adGroupRepository.delete(adGroup);
+            logger.debug("AD group " + adGroup + " deleted.");
+        } catch (Exception exception) {
+            logger.debug("Error while deleting AD group " + adGroup, exception);
+        }
     }
 
-    private void connect() throws ConnectException {
-        if (isConnected) {
-            return;
+    private boolean connect() {
+        try {
+            if (isConnected) {
+                return true;
+            }
+            if (activeDirectory == null) {
+                String errorMessage = UI.getCurrent().getTranslation("error.domain.connection.ad.empty");
+                logger.debug(errorMessage);
+                return false;
+            }
+            queryRequest = new QueryRequest();
+            queryRequest.setDirectoryType(DirectoryType.MS_ACTIVE_DIRECTORY);
+            queryRequest.setSizeLimit(1000); //TODO: read from config
+            queryRequest.setTimeLimit(1000); //TODO: read from config
+            // try to connect - add all valid endpoints to the query request
+            final Endpoint endpoint = new Endpoint();
+            endpoint.setSecuredConnection(activeDirectory.useSecureConnection());
+            endpoint.setPort((int) activeDirectory.getPort());
+            endpoint.setHost(activeDirectory.getIPAddress());
+            endpoint.setUserAccountName(activeDirectory.getConnectionUserName());
+            endpoint.setPassword(activeDirectory.getEncryptedConnectionPassword());
+            final ConnectionResponse connectionResponse = DirectoryConnectorService.authenticate(endpoint);
+            if (connectionResponse.isError()) {
+                logger.debug("The connection to the Active Directory failed.");
+                return false;
+            }
+            queryRequest.addEndpoint(endpoint);
+            return isConnected = true;
+        } catch (Exception exception) {
+            logger.debug("The connection to the Active Directory failed.", exception);
+            return false;
         }
-        if (activeDirectory == null) {
-            String errorMessage = UI.getCurrent().getTranslation("error.domain.connection.ad.empty");
-            logger.debug(errorMessage);
-            throw new ConnectException(errorMessage);
-        }
-        queryRequest = new QueryRequest();
-        queryRequest.setDirectoryType(DirectoryType.MS_ACTIVE_DIRECTORY);
-        queryRequest.setSizeLimit(1000); //TODO: read from config
-        queryRequest.setTimeLimit(1000); //TODO: read from config
-        // try to connect - add all valid endpoints to the query request
-        final Endpoint endpoint = new Endpoint();
-        endpoint.setSecuredConnection(activeDirectory.useSecureConnection());
-        endpoint.setPort((int) activeDirectory.getPort());
-        endpoint.setHost(activeDirectory.getIPAddress());
-        endpoint.setUserAccountName(activeDirectory.getConnectionUserName());
-        endpoint.setPassword(activeDirectory.getEncryptedConnectionPassword());
-        final ConnectionResponse connectionResponse = DirectoryConnectorService.authenticate(endpoint);
-        if (connectionResponse.isError()) {
-            throw new ConnectException(connectionResponse.toString());
-        }
-        queryRequest.addEndpoint(endpoint);
-        isConnected = true;
     }
 
     private List<EntityResponse> getADUser() {

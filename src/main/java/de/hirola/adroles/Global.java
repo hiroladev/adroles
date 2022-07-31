@@ -52,6 +52,7 @@ public final class Global {
     public enum Component {
         ;
         public static final String DEFAULT_BUTTON_WIDTH = "250px";
+        public static final String DEFAULT_ICON_BUTTON_WIDTH = "100px";
         public static final String DEFAULT_TEXT_FIELD_WIDTH = "400px";
         public static final String DEFAULT_COLUMN_WIDTH = "200px";
         public static final String IMAGE_COLUMN_WIDTH = "50px";

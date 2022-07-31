@@ -4,6 +4,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -57,23 +58,32 @@ public class RolesListView extends VerticalLayout {
         filterTextField.setValueChangeMode(ValueChangeMode.LAZY);
         filterTextField.addValueChangeListener(e -> updateList());
 
-        addRoleButton = new Button(getTranslation("addRole"));
-        addRoleButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        addRoleButton = new Button(new Icon(VaadinIcon.PLUS));
+        addRoleButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        addRoleButton.getElement().setAttribute("aria-label", getTranslation("addRole"));
+        addRoleButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         addRoleButton.addClickListener(click -> addRole());
 
-        deleteRolesButton = new Button(getTranslation("deleteRoles"));
-        deleteRolesButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
-        deleteRolesButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        deleteRolesButton = new Button(new Icon(VaadinIcon.MINUS));
+        deleteRolesButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        deleteRolesButton.getElement().setAttribute("aria-label", getTranslation("deleteRoles"));
+        deleteRolesButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         deleteRolesButton.addClickListener(click -> deleteRoles());
 
-        importFromGroupsButton = new Button(getTranslation("roles.importFromGroups"));
-        importFromGroupsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        importFromGroupsButton = new Button(new Icon(VaadinIcon.INSERT));
+        importFromGroupsButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        importFromGroupsButton.setText(getTranslation("roles.importFromGroups"));
+        importFromGroupsButton.setIconAfterText(true);
+        importFromGroupsButton.getElement().setAttribute("aria-label", getTranslation("roles.importFromGroups"));
         importFromGroupsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
         importFromGroupsButton.addClickListener(click -> importRolesFromGroups());
 
         // import Roles from JSON
-        Button importFromJSONButton = new Button(getTranslation("importFromJSON"));
-        importFromJSONButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        Button importFromJSONButton = new Button(new Icon(VaadinIcon.INSERT));
+        importFromJSONButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        importFromJSONButton.setText(getTranslation("importFromJSON"));
+        importFromJSONButton.setIconAfterText(true);
+        importFromJSONButton.getElement().setAttribute("aria-label", getTranslation("importFromJSON"));
         importFromJSONButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
         importFromJSONButton.addClickListener(click -> importRolesFromJSON());
 
@@ -95,7 +105,8 @@ public class RolesListView extends VerticalLayout {
                     return VaadinIcon.CUBE.create();
                 }))
                 .setHeader(getTranslation("roleResource"))
-                .setWidth(Global.Component.IMAGE_COLUMN_WIDTH);
+                .setWidth(Global.Component.IMAGE_COLUMN_WIDTH)
+                .setSortable(true);
         grid.addColumn(Role::getName).setHeader(getTranslation("name"))
                 .setSortable(true)
                 .setKey(Global.Component.FOOTER_COLUMN_KEY)
@@ -138,13 +149,11 @@ public class RolesListView extends VerticalLayout {
         content.addClassNames("content", "gap-m");
         content.setSizeFull();
 
-        HorizontalLayout toolbar_1 = new HorizontalLayout(filterTextField, addRoleButton, deleteRolesButton);
-        toolbar_1.addClassName("toolbar_1");
+        HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addRoleButton, deleteRolesButton,
+                importFromGroupsButton, importFromJSONButton);
+        toolbar.addClassName("toolbar");
 
-        HorizontalLayout toolbar_2 = new HorizontalLayout(importFromGroupsButton, importFromJSONButton);
-        toolbar_2.addClassName("toolbar_2");
-
-        add(toolbar_1, toolbar_2, content);
+        add(toolbar, content);
     }
 
     private void importRolesFromGroups() {

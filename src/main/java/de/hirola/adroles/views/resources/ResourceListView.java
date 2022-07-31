@@ -4,6 +4,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -68,25 +70,24 @@ public class ResourceListView extends VerticalLayout {
         filterTextField.setValueChangeMode(ValueChangeMode.LAZY);
         filterTextField.addValueChangeListener(e -> updateList());
 
-        addResourceRoleButton = new Button(getTranslation(roleResource.getAddResourceTranslationKey()));
-        addResourceRoleButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        addResourceRoleButton = new Button(new Icon(VaadinIcon.PLUS));
+        addResourceRoleButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        addResourceRoleButton.getElement().setAttribute("aria-label", getTranslation(roleResource.getAddResourceTranslationKey()));
+        addResourceRoleButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         addResourceRoleButton.addClickListener(click -> addResourceRole());
 
-        deleteResourceRolesButton = new Button(getTranslation(roleResource.getDeleteResourcesTranslationKey()));
-        deleteResourceRolesButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
-        deleteResourceRolesButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        deleteResourceRolesButton = new Button(new Icon(VaadinIcon.MINUS));
+        deleteResourceRolesButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        deleteResourceRolesButton.getElement().setAttribute("aria-label", roleResource.getDeleteResourcesTranslationKey());
+        deleteResourceRolesButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         deleteResourceRolesButton.addClickListener(click -> deleteResourceRoles());
         deleteResourceRolesButton.setEnabled(false);
 
-        HorizontalLayout toolbar_1 = new HorizontalLayout(filterTextField, addResourceRoleButton, deleteResourceRolesButton);
-        toolbar_1.addClassName("toolbar_1");
-
-        TextField placeHolder = new TextField();
-        placeHolder.setReadOnly(true);
-        placeHolder.setEnabled(false);
-
-        importFromPersonsButton = new Button(getTranslation("importFromPersons"));
-        importFromPersonsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        importFromPersonsButton = new Button(new Icon(VaadinIcon.INSERT));
+        importFromPersonsButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        importFromPersonsButton.setText(getTranslation("importFromPersons"));
+        importFromPersonsButton.setIconAfterText(true);
+        importFromPersonsButton.getElement().setAttribute("aria-label", getTranslation("importFromPersons"));
         importFromPersonsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
         importFromPersonsButton.addClickListener(click -> {
             if (roleResource.isOrgResource()) {
@@ -94,13 +95,18 @@ public class ResourceListView extends VerticalLayout {
             }
         });
 
-        importFromJSONButton = new Button(getTranslation("importFromJSON"));
-        importFromJSONButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        // import Roles from JSON
+        importFromJSONButton = new Button(new Icon(VaadinIcon.INSERT));
+        importFromJSONButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        importFromJSONButton.setText(getTranslation("importFromJSON"));
+        importFromJSONButton.setIconAfterText(true);
+        importFromJSONButton.getElement().setAttribute("aria-label", getTranslation("importFromJSON"));
         importFromJSONButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
         importFromJSONButton.addClickListener(click -> importResourcesFromJSON());
 
-        HorizontalLayout toolbar_2 = new HorizontalLayout(placeHolder, importFromPersonsButton, importFromJSONButton);
-        toolbar_2.addClassName("toolbar_2");
+        HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addResourceRoleButton,
+                deleteResourceRolesButton, importFromPersonsButton, importFromJSONButton);
+        toolbar.addClassName("toolbar");
 
         grid.addClassNames(roleResource.getViewClassName().concat("-grid"));
         grid.setSizeFull();
@@ -149,7 +155,7 @@ public class ResourceListView extends VerticalLayout {
         content.addClassNames("content", "gap-m");
         content.setSizeFull();
 
-        add(toolbar_1, toolbar_2, content);
+        add(toolbar, content);
     }
 
     private void saveResourceRole(ResourceRoleForm.SaveEvent event) {

@@ -15,17 +15,16 @@ public interface RoleRepository extends JpaRepository<Role, Integer> {
             "order by r.name")
     List<Role> search(@Param("searchTerm") String searchTerm);
 
-    @Query("select r from Role r join r.roleResource r " +
-            "where r.isOrgResource = true " +
-            "and (lower(r.name) like lower(concat('%', :searchTerm, '%')) " +
-            "or lower(r.description) like lower(concat('%', :searchTerm, '%'))) " +
-            "order by r.name")
-    // @Query("SELECT u FROM User u JOIN u.roles r WHERE r.name LIKE %?1%")
-    List<Role> searchOrg(@Param("searchTerm") String searchTerm);
-
     @Query("select r from Role r " +
             "where lower(r.name) like lower(concat('%', :searchTerm, '%')) " +
             "or lower(r.description) like lower(concat('%', :searchTerm, '%')) " +
+            "order by r.name")
+    List<Role> searchOrg(@Param("searchTerm") String searchTerm);
+
+    @Query("select r from Role r, RoleResource rr " +
+            "where rr.isProjectResource = true " +
+            "and (lower(r.name) like lower(concat('%', :searchTerm, '%')) " +
+            "or lower(r.description) like lower(concat('%', :searchTerm, '%'))) " +
             "order by r.name")
     List<Role> searchProject(@Param("searchTerm") String searchTerm);
 
@@ -35,10 +34,13 @@ public interface RoleRepository extends JpaRepository<Role, Integer> {
             "order by r.name")
     List<Role> searchFileShare(@Param("searchTerm") String searchTerm);
 
+    List<Role> findByRoleResource_IsOrgResourceTrueOrderByNameAsc();
+
+    List<Role> findByRoleResource_IsProjectResourceTrueOrderByNameAsc();
+
+    List<Role> findByRoleResource_IsFileShareResourceTrueOrderByNameAsc();
 
     List<Role> findByPersons_Id(Integer id);
-
-    List<Role> findByRoleResource_IsOrgResourceTrueOrderByNameAsc();
 
     long countByRoleResource_IsOrgResourceTrue();
 
