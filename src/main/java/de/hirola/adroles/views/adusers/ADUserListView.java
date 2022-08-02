@@ -4,6 +4,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -54,13 +56,16 @@ public class ADUserListView extends VerticalLayout {
         filterTextField.setValueChangeMode(ValueChangeMode.LAZY);
         filterTextField.addValueChangeListener(event -> updateList());
 
-        addADUserButton = new Button(getTranslation("addADUser"));
-        addADUserButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        addADUserButton = new Button(new Icon(VaadinIcon.PLUS));
+        addADUserButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        addADUserButton.getElement().setAttribute("aria-label", getTranslation("addADUser"));
+        addADUserButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         addADUserButton.addClickListener(click -> addADUser());
 
-        deleteADUsersButton = new Button(getTranslation("deleteADUsers"));
-        deleteADUsersButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
-        deleteADUsersButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        deleteADUsersButton = new Button(new Icon(VaadinIcon.MINUS));
+        deleteADUsersButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        deleteADUsersButton.getElement().setAttribute("aria-label", getTranslation("deleteADUsers"));
+        deleteADUsersButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         deleteADUsersButton.addClickListener(click -> deleteADUsers());
 
         //TODO: enable / disable import by config

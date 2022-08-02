@@ -72,13 +72,15 @@ public class ResourceListView extends VerticalLayout {
 
         addResourceRoleButton = new Button(new Icon(VaadinIcon.PLUS));
         addResourceRoleButton.addThemeVariants(ButtonVariant.LUMO_ICON);
-        addResourceRoleButton.getElement().setAttribute("aria-label", getTranslation(roleResource.getAddResourceTranslationKey()));
+        addResourceRoleButton.getElement().setAttribute("aria-label",
+                getTranslation(roleResource.getAddResourceTranslationKey()));
         addResourceRoleButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         addResourceRoleButton.addClickListener(click -> addResourceRole());
 
         deleteResourceRolesButton = new Button(new Icon(VaadinIcon.MINUS));
         deleteResourceRolesButton.addThemeVariants(ButtonVariant.LUMO_ICON);
-        deleteResourceRolesButton.getElement().setAttribute("aria-label", roleResource.getDeleteResourcesTranslationKey());
+        deleteResourceRolesButton.getElement().setAttribute("aria-label",
+                roleResource.getDeleteResourcesTranslationKey());
         deleteResourceRolesButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         deleteResourceRolesButton.addClickListener(click -> deleteResourceRoles());
         deleteResourceRolesButton.setEnabled(false);

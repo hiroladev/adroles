@@ -4,6 +4,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -54,13 +56,16 @@ public class ADGroupListView extends VerticalLayout {
         filterTextField.setValueChangeMode(ValueChangeMode.LAZY);
         filterTextField.addValueChangeListener(event -> updateList());
 
-        addADGroupButton = new Button(getTranslation("addADGroup"));
-        addADGroupButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        addADGroupButton = new Button(new Icon(VaadinIcon.PLUS));
+        addADGroupButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        addADGroupButton.getElement().setAttribute("aria-label", getTranslation("adGroup"));
+        addADGroupButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         addADGroupButton.addClickListener(click -> addADgroup());
 
-        deleteADGroupsButton = new Button(getTranslation("deleteADGroups"));
-        deleteADGroupsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
-        deleteADGroupsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        deleteADGroupsButton = new Button(new Icon(VaadinIcon.MINUS));
+        deleteADGroupsButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        deleteADGroupsButton.getElement().setAttribute("aria-label", getTranslation("deleteADGroups"));
+        deleteADGroupsButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         deleteADGroupsButton.addClickListener(click -> deleteADGroups());
 
         //TODO: enable / disable import by config

@@ -3,6 +3,8 @@ package de.hirola.adroles.views.persons;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.textfield.TextArea;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Person;
@@ -53,13 +55,16 @@ public class PersonListView extends VerticalLayout {
         filterTextField.setValueChangeMode(ValueChangeMode.LAZY);
         filterTextField.addValueChangeListener(event -> updateList());
 
-        addPersonButton = new Button(getTranslation("addPerson"));
-        addPersonButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        addPersonButton = new Button(new Icon(VaadinIcon.PLUS));
+        addPersonButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        addPersonButton.getElement().setAttribute("aria-label", getTranslation("addPerson"));
+        addPersonButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         addPersonButton.addClickListener(click -> addPerson());
 
-        deletePersonsButton = new Button(getTranslation("deletePersons"));
-        deletePersonsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
-        deletePersonsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        deletePersonsButton = new Button(new Icon(VaadinIcon.MINUS));
+        deletePersonsButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        deletePersonsButton.getElement().setAttribute("aria-label", getTranslation("deletePersons"));
+        deletePersonsButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         deletePersonsButton.addClickListener(click -> deletePersons());
 
         //TODO: enable / disable import by config
@@ -117,7 +122,7 @@ public class PersonListView extends VerticalLayout {
         // context menu to change the role resource of selected roles
         PersonContextMenu contextMenu = new PersonContextMenu(grid, this);
 
-        FlexLayout content = new FlexLayout(grid, personForm, assignRoleForm);
+        FlexLayout content = new FlexLayout(grid, contextMenu, personForm, assignRoleForm);
         content.setFlexGrow(2, grid);
         content.setFlexGrow(1, personForm, assignRoleForm);
         content.setFlexShrink(0, personForm, assignRoleForm);
@@ -288,13 +293,9 @@ public class PersonListView extends VerticalLayout {
             super(target);
             this.listView = listView;
 
-            addItem(getTranslation("setEmployeeStatus"), event -> event.getItem().ifPresent(person -> {
-                showDialog(true);
-            }));
+            addItem(getTranslation("setEmployeeStatus"), event -> event.getItem().ifPresent(person -> showDialog(true)));
 
-            addItem(getTranslation("unsetEmployeeStatus"), event -> event.getItem().ifPresent(person -> {
-                showDialog(false);
-            }));
+            addItem(getTranslation("unsetEmployeeStatus"), event -> event.getItem().ifPresent(person -> showDialog(false)));
 
         }
 
@@ -309,9 +310,7 @@ public class PersonListView extends VerticalLayout {
             okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
             okButton.getStyle().set("margin-right", "auto");
 
-            Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> {
-                dialog.close();
-            });
+            Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> dialog.close());
             cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
             dialog.getFooter().add(okButton);

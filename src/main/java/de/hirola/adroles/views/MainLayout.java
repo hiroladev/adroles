@@ -38,7 +38,7 @@ public class MainLayout extends AppLayout {
         H1 logo = new H1(getTranslation("app.name"));
         logo.addClassNames("text-l", "m-m");
 
-        Button logout = new Button(getTranslation("logout"), e -> securityService.logout());
+        Button logout = new Button(getTranslation("logout"), event -> securityService.logout());
 
         HorizontalLayout header = new HorizontalLayout(new DrawerToggle(), logo, logout);
 
