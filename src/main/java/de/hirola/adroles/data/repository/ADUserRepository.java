@@ -17,6 +17,7 @@ public interface ADUserRepository extends JpaRepository<ADUser, Integer> {
 
     Optional<ADUser> findFirstByDistinguishedName(String distinguishedName);
 
+    List<ADUser> findByIsRoleManagedTrueOrderByLogonNameAsc();
 
     long countByPasswordExpiresFalse();
 }

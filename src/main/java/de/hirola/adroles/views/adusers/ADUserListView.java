@@ -148,17 +148,10 @@ public class ADUserListView extends VerticalLayout {
 
             Button okButton = new Button("Ok", clickEvent -> {
                 dialog.close();
-                if (!identityService.importUserFromAD(false)) {
+                if (!identityService.importUserFromAD()) {
                     NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
                 }
                 updateList();
-            });
-            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-            okButton.getStyle().set("margin-right", "auto");
-
-            Button partiallyButton = new Button(getTranslation("question.missing"), clickEvent -> {
-                dialog.close();
-                NotificationPopUp.show(NotificationPopUp.INFO, getTranslation("not.implemented"));
             });
             okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
             okButton.getStyle().set("margin-right", "auto");
@@ -168,13 +161,12 @@ public class ADUserListView extends VerticalLayout {
 
             dialog.add(messageArea);
             dialog.getFooter().add(okButton);
-            dialog.getFooter().add(partiallyButton);
             dialog.getFooter().add(cancelButton);
 
             dialog.open();
         } else {
             dialog.close();
-            if (!identityService.importPersonsFromAD(false)) {
+            if (!identityService.importPersonsFromAD()) {
                 NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
             }
             updateList();

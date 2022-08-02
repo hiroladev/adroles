@@ -49,4 +49,30 @@ public enum NotificationPopUp {
         notification.setPosition(Notification.Position.MIDDLE);
         notification.open();
     }
+
+    public static void show(int mode, String message, String errorMessage) {
+        Notification notification;
+        if (mode == NotificationPopUp.ERROR) {
+            notification = new Notification();
+            Div text = new Div(new Text(message));
+            Div errorText = new Div(new Text(errorMessage));
+            Button closeButton = new Button(new Icon("lumo", "cross"));
+            closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+            closeButton.getElement().setAttribute("aria-label", UI.getCurrent().getTranslation("close"));
+            closeButton.addClickListener(event -> notification.close());
+
+            HorizontalLayout layout = new HorizontalLayout(text, errorText, closeButton);
+            layout.setAlignItems(FlexComponent.Alignment.CENTER);
+
+            notification.add(layout);
+            closeButton.getElement().setAttribute("aria-label", "Close");
+            closeButton.addClickListener(event -> notification.close());
+            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+        } else {
+            notification = Notification.show(message);
+            notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        }
+        notification.setPosition(Notification.Position.MIDDLE);
+        notification.open();
+    }
 }

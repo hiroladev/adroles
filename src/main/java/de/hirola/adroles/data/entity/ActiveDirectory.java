@@ -4,6 +4,7 @@ import de.hirola.adroles.data.AbstractEntity;
 
 import javax.persistence.Entity;
 import javax.validation.constraints.NotEmpty;
+import java.util.Objects;
 
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
@@ -28,14 +29,14 @@ public class ActiveDirectory extends AbstractEntity {
     private String connectionPassword;
 
     public String getDomainName() {
-        return domainName;
+        return Objects.requireNonNullElse(domainName, "");
     }
     public void setDomainName(String domainName) {
         this.domainName = domainName;
     }
 
     public String getIPAddress() {
-        return ipAddress;
+        return Objects.requireNonNullElse(ipAddress, "");
     }
 
     public void setIPAddress(String ipAddress) {
@@ -59,7 +60,7 @@ public class ActiveDirectory extends AbstractEntity {
     }
 
     public String getConnectionUserName() {
-        return connectionUserName;
+        return Objects.requireNonNullElse(connectionUserName, "");
     }
 
     /**
@@ -77,7 +78,7 @@ public class ActiveDirectory extends AbstractEntity {
     }
 
     public String getEncryptedConnectionPassword() {
-        return connectionPassword;
+        return Objects.requireNonNullElse(connectionPassword, "");
     }
 
     public void setEncryptedConnectionPassword(String password) {

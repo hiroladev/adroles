@@ -6,6 +6,8 @@ import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.OneToMany;
 import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -22,7 +24,7 @@ import java.util.Set;
  */
 
 @Entity
-public class RoleResource extends AbstractEntity {
+public class RoleResource extends AbstractEntity implements Comparable<RoleResource> {
     @NotEmpty
     private String name;
     private String description;
@@ -48,7 +50,7 @@ public class RoleResource extends AbstractEntity {
     }
 
     public String getDescription() {
-        return description;
+        return Objects.requireNonNullElse(description, "");
     }
 
     public void setDescription(String description) {
@@ -56,7 +58,7 @@ public class RoleResource extends AbstractEntity {
     }
 
     public String getViewClassName() {
-        return viewClassName;
+        return Objects.requireNonNullElse(viewClassName, "");
     }
 
     public void setViewClassName(String viewClassName) {
@@ -67,7 +69,7 @@ public class RoleResource extends AbstractEntity {
     }
 
     public String getAddResourceTranslationKey() {
-        return addResourceTranslationKey;
+        return Objects.requireNonNullElse(addResourceTranslationKey, "");
     }
 
     public void setAddResourceTranslationKey(String addResourceTranslationKey) {
@@ -78,7 +80,7 @@ public class RoleResource extends AbstractEntity {
     }
 
     public String getDeleteResourcesTranslationKey() {
-        return deleteResourcesTranslationKey;
+        return Objects.requireNonNullElse(deleteResourcesTranslationKey, "");
     }
 
     public void setDeleteResourcesTranslationKey(String deleteResourcesTranslationKey) {
@@ -152,6 +154,7 @@ public class RoleResource extends AbstractEntity {
         roles.clear();
     }
 
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -164,6 +167,11 @@ public class RoleResource extends AbstractEntity {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), name);
+    }
+
+    @Override
+    public int compareTo(@NotNull RoleResource o) {
+        return this.name.compareToIgnoreCase(o.getName());
     }
 }
 

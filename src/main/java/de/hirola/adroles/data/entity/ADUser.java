@@ -30,6 +30,7 @@ public class ADUser extends AbstractEntity {
     private boolean enabled;
     private boolean passwordExpires;
 
+    private boolean isRoleManaged;
     private boolean isAdminAccount;
 
     private boolean isServiceAccount;
@@ -37,19 +38,8 @@ public class ADUser extends AbstractEntity {
     @JoinColumn(name = "person_id")
     private Person person;
 
-    @ManyToMany(cascade = CascadeType.PERSIST)
-    @JoinTable(name = "aduser_adgroups",
-            joinColumns = @JoinColumn(name = "aduser_id"),
-            inverseJoinColumns = @JoinColumn(name = "adgroups_id"))
-    private Set<ADGroup> adGroups = new LinkedHashSet<>();
-
-    public Set<ADGroup> getAdGroups() {
-        return adGroups;
-    }
-
-    public void setAdGroups(Set<ADGroup> adGroups) {
-        this.adGroups = adGroups;
-    }
+    @ManyToMany(mappedBy = "adUsers", cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
+    private Set<Role> roles = new LinkedHashSet<>();
 
     public String getLogonName() {
         return Objects.requireNonNullElse(logonName, "");
@@ -91,6 +81,14 @@ public class ADUser extends AbstractEntity {
         this.passwordExpires = passwordExpires;
     }
 
+    public boolean isRoleManaged() {
+        return isRoleManaged;
+    }
+
+    public void setRoleManaged(boolean roleManaged) {
+        isRoleManaged = roleManaged;
+    }
+
     public boolean isAdminAccount() {
         return isAdminAccount;
     }
@@ -105,6 +103,48 @@ public class ADUser extends AbstractEntity {
 
     public void setServiceAccount(boolean serviceAccount) {
         isServiceAccount = serviceAccount;
+    }
+
+    public Set<Role> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Set<Role> roles) {
+        if (roles == null) {
+            return;
+        }
+        this.roles = roles;
+    }
+
+    public void addRole(Role role) {
+        if (role == null) {
+            return;
+        }
+        roles.add(role);
+    }
+
+    public void removeRole(Role role) {
+        if (role == null) {
+            return;
+        }
+        roles.remove(role);
+    }
+
+    public void removeAllRoles() {
+        roles.clear();
+    }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ADUser adUser = (ADUser) o;
+        return Objects.equals(logonName, adUser.logonName) && Objects.equals(distinguishedName, adUser.distinguishedName);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), logonName, distinguishedName);
     }
 }
 

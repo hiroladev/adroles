@@ -3,6 +3,7 @@ package de.hirola.adroles.data.entity;
 import de.hirola.adroles.data.AbstractEntity;
 
 import javax.persistence.Entity;
+import java.util.Objects;
 
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
@@ -20,7 +21,7 @@ public class Authorities extends AbstractEntity {
     private String authority;
 
     public String getLoginName() {
-        return loginName;
+        return Objects.requireNonNullElse(loginName, "");
     }
 
     public void setLoginName(String loginName) {
@@ -28,7 +29,7 @@ public class Authorities extends AbstractEntity {
     }
 
     public String getAuthority() {
-        return authority;
+        return Objects.requireNonNullElse(authority, "");
     }
 
     public void setAuthority(String authority) {

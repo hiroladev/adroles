@@ -33,39 +33,27 @@ public class ADGroup extends AbstractEntity {
     @ManyToMany(mappedBy = "adGroups", cascade = CascadeType.PERSIST, fetch= FetchType.EAGER)
     private Set<Role> roles = new LinkedHashSet<>();
 
-    @ManyToMany(mappedBy = "adGroups", cascade = CascadeType.PERSIST)
-    private Set<ADUser> adUsers = new LinkedHashSet<>();
-
     public String getName() {
         return Objects.requireNonNullElse(name, "");
     }
 
     public void setName(String name) {
-        if (name == null) {
-            return;
-        }
         this.name = name;
     }
 
     public String getDistinguishedName() {
-        return distinguishedName;
+        return Objects.requireNonNullElse(distinguishedName, "");
     }
 
     public void setDistinguishedName(String distinguishedName) {
-        if (distinguishedName == null) {
-            return;
-        }
-        this.distinguishedName = distinguishedName;
+       this.distinguishedName = distinguishedName;
     }
 
     public String getDescription() {
-        return description;
+        return Objects.requireNonNullElse(description, "");
     }
 
     public void setDescription(String description) {
-        if (description == null) {
-            return;
-        }
         this.description = description;
     }
 
@@ -120,35 +108,6 @@ public class ADGroup extends AbstractEntity {
 
     public void removeAllRoles() {
         roles.clear();
-    }
-
-    public Set<ADUser> getADUsers() {
-        return adUsers;
-    }
-
-    public void setADUsers(Set<ADUser> adUsers) {
-        if (adUsers == null) {
-            return;
-        }
-        this.adUsers = adUsers;
-    }
-
-    public void addADUser(ADUser adUser) {
-        if (adUser == null) {
-            return;
-        }
-        adUsers.add(adUser);
-    }
-
-    public void removeADUser(ADUser adUser) {
-        if (adUser == null) {
-            return;
-        }
-        adUsers.remove(adUser);
-    }
-
-    public void removeAllADUser() {
-        adUsers.clear();
     }
 
     @Override

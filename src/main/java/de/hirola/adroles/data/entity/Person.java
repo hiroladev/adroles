@@ -1,5 +1,6 @@
 package de.hirola.adroles.data.entity;
 
+import de.hirola.adroles.Global;
 import de.hirola.adroles.data.AbstractEntity;
 
 import javax.persistence.*;
@@ -33,10 +34,10 @@ public class Person extends AbstractEntity {
     private String mobilePhoneNumber;
     private String departmentName;
     private String description;
-
     private LocalDate entryDate, exitDate;
+    private boolean isEmployee;
 
-    @OneToMany(cascade = CascadeType.PERSIST, fetch= FetchType.EAGER)
+    @OneToMany(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
     @JoinColumn(name = "person_id")
     private Set<ADUser> adUsers = new LinkedHashSet<>();
 
@@ -44,7 +45,7 @@ public class Person extends AbstractEntity {
     private Set<Role> roles = new LinkedHashSet<>();
 
     public String getCentralAccountName() {
-        return centralAccountName;
+        return Objects.requireNonNullElse(centralAccountName, "");
     }
 
     public void setCentralAccountName(String centralAccountName) {
@@ -108,8 +109,7 @@ public class Person extends AbstractEntity {
     }
 
     public LocalDate getEntryDate() {
-        return Objects.requireNonNullElse(entryDate,
-                LocalDate.now(ZoneId.systemDefault()));
+        return Objects.requireNonNullElse(entryDate, Global.EMPLOYEE_DEFAULT_VALUES.ENTRY_DATE);
     }
 
     public void setEntryDate(LocalDate entryDate) {
@@ -117,36 +117,41 @@ public class Person extends AbstractEntity {
     }
 
     public LocalDate getExitDate() {
-        return Objects.requireNonNullElse(exitDate,
-                LocalDate.now(ZoneId.systemDefault()));
+        return Objects.requireNonNullElse(exitDate, Global.EMPLOYEE_DEFAULT_VALUES.EXIT_DATE);
     }
 
     public void setExitDate(LocalDate exitDate) {
         this.exitDate = exitDate;
     }
 
-    public Set<ADUser> getADAccounts() {
+    public Set<ADUser> getADUsers() {
         return adUsers;
     }
 
-    public void setADAccounts(Set<ADUser> accounts) {
-        this.adUsers = accounts;
-    }
-
-    private void addADAccount(ADUser account) {
-        if (account == null) {
+    public void setADUsers(Set<ADUser> adUsers) {
+        if (this.adUsers == null) {
             return;
         }
-        adUsers.add(account);
+        this.adUsers = adUsers;
     }
 
-    private void removeADAccount(ADUser account) {
+    public void addADUser(ADUser adUser) {
+        if (adUser == null) {
+            return;
+        }
+        adUsers.add(adUser);
+    }
+
+    public void removeADUser(ADUser account) {
         if (account == null) {
             return;
         }
         adUsers.remove(account);
     }
 
+    public void removeAllADUsers() {
+        adUsers.clear();
+    }
     public Set<Role> getRoles() {
         return roles;
     }
@@ -175,6 +180,14 @@ public class Person extends AbstractEntity {
         roles.clear();
     }
 
+    public boolean isEmployee() {
+        return isEmployee;
+    }
+
+    public void setEmployee(boolean employee) {
+        isEmployee = employee;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -190,5 +203,4 @@ public class Person extends AbstractEntity {
     public int hashCode() {
         return Objects.hash(super.hashCode(), centralAccountName, lastName, firstName);
     }
-
 }

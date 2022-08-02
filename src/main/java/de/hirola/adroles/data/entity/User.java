@@ -5,6 +5,7 @@ import de.hirola.adroles.data.AbstractEntity;
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import javax.validation.constraints.NotEmpty;
+import java.util.Objects;
 
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
@@ -26,7 +27,7 @@ public class User extends AbstractEntity {
     private boolean enabled = true;
 
     public String getLoginName() {
-        return loginName;
+        return Objects.requireNonNullElse(loginName, "");
     }
 
     public void setLoginName(String loginName) {
@@ -34,7 +35,7 @@ public class User extends AbstractEntity {
     }
 
     public String getPassword() {
-        return password;
+        return Objects.requireNonNullElse(password, "");
     }
 
     public void setPassword(String password) {

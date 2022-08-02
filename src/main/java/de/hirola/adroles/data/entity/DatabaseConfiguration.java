@@ -4,6 +4,7 @@ import de.hirola.adroles.data.AbstractEntity;
 
 import javax.persistence.Entity;
 import javax.validation.constraints.NotEmpty;
+import java.util.Objects;
 
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
@@ -25,7 +26,7 @@ public class DatabaseConfiguration extends AbstractEntity {
     private String password;
 
     public String getName() {
-        return name;
+        return Objects.requireNonNullElse(name, "");
     }
 
     public void setName(String name) {
@@ -33,7 +34,7 @@ public class DatabaseConfiguration extends AbstractEntity {
     }
 
     public String getJdbcDriver() {
-        return jdbcDriver;
+        return Objects.requireNonNullElse(jdbcDriver, "");
     }
 
     public void setJdbcDriver(String jdbcDriver) {
@@ -41,7 +42,7 @@ public class DatabaseConfiguration extends AbstractEntity {
     }
 
     public String getJdbcUrl() {
-        return jdbcUrl;
+        return Objects.requireNonNullElse(jdbcUrl, "");
     }
 
     public void setJdbcUrl(String jdbcUrl) {
@@ -49,7 +50,7 @@ public class DatabaseConfiguration extends AbstractEntity {
     }
 
     public String getUsername() {
-        return username;
+        return Objects.requireNonNullElse(username, "");
     }
 
     public void setUsername(String username) {
@@ -57,7 +58,7 @@ public class DatabaseConfiguration extends AbstractEntity {
     }
 
     public String getPassword() {
-        return password;
+        return Objects.requireNonNullElse(password, "");
     }
 
     public void setPassword(String password) {

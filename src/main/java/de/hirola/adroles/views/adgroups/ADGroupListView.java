@@ -129,7 +129,7 @@ public class ADGroupListView extends VerticalLayout {
 
             Button okButton = new Button("Ok", clickEvent -> {
                 dialog.close();
-                if (!identityService.importGroupsFromAD(false)) {
+                if (!identityService.importGroupsFromAD()) {
                     NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
                 }
                 updateList();
@@ -155,7 +155,7 @@ public class ADGroupListView extends VerticalLayout {
             dialog.open();
         } else {
             dialog.close();
-            if (!identityService.importGroupsFromAD(false)) {
+            if (!identityService.importGroupsFromAD()) {
                 NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
             }
             updateList();

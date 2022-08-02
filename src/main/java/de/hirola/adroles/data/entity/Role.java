@@ -50,6 +50,12 @@ public class Role extends AbstractEntity {
             inverseJoinColumns = @JoinColumn(name = "person_id"))
     private Set<Person> persons = new LinkedHashSet<>();
 
+    @ManyToMany(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
+    @JoinTable(name = "role_aduser",
+            joinColumns = @JoinColumn(name = "role_id"),
+            inverseJoinColumns = @JoinColumn(name = "aduser_id"))
+    private Set<ADUser> adUsers = new LinkedHashSet<>();
+
     public String getName() {
         return Objects.requireNonNullElse(name, "");
     }
@@ -98,11 +104,11 @@ public class Role extends AbstractEntity {
         this.secondResponsible = secondResponsible;
     }
 
-    public Set<ADGroup> getAdGroups() {
+    public Set<ADGroup> getADGroups() {
         return adGroups;
     }
 
-    public void setAdGroups(Set<ADGroup> adGroups) {
+    public void setADGroups(Set<ADGroup> adGroups) {
         if (adGroups == null) {
             return;
         }
@@ -123,6 +129,9 @@ public class Role extends AbstractEntity {
         adGroups.remove(adGroup);
     }
 
+    public void removeAllADGroups() {
+        adGroups.clear();
+    }
 
     public Set<Person> getPersons() {
         return persons;
@@ -140,11 +149,40 @@ public class Role extends AbstractEntity {
     }
 
     public void removePerson(Person person) {
+        if (person == null) {
+            return;
+        }
         persons.remove(person);
     }
 
     public void removeAllPersons() {
         persons.clear();
+    }
+
+    public Set<ADUser> getADUsers() {
+        return adUsers;
+    }
+
+    public void setADUsers(Set<ADUser> adUsers) {
+        if (adUsers == null) {
+            return;
+        }
+        this.adUsers = adUsers;
+    }
+
+    public void addADUser(ADUser adUser) {
+        adUsers.add(adUser);
+    }
+
+    public void removeADUser(ADUser adUser) {
+        if (adUser == null) {
+            return;
+        }
+        adUsers.remove(adUser);
+    }
+
+    public void removeAllADUsers() {
+        adUsers.clear();
     }
 
     @Override

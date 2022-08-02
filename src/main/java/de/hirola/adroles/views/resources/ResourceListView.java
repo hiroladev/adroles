@@ -17,7 +17,9 @@ import de.hirola.adroles.data.entity.RoleResource;
 import de.hirola.adroles.data.entity.Role;
 import de.hirola.adroles.service.IdentityService;
 import de.hirola.adroles.views.NotificationPopUp;
-import de.hirola.adroles.views.roles.ResourceAssignADGroupForm;
+import de.hirola.adroles.views.roles.RoleForm;
+import de.hirola.adroles.views.roles.RoleAssignADGroupForm;
+import de.hirola.adroles.views.roles.RoleAssignPersonForm;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -39,12 +41,12 @@ public class ResourceListView extends VerticalLayout {
     private final Hashtable<String, RoleResource> roleResourceList = new Hashtable<>();
     private final RoleResource roleResource;
     private final List<Role> selectedResourceRoles = new ArrayList<>();
-    private ResourceRoleForm resourceRoleForm;
-    private ResourceAssignPersonForm assignPersonForm;
-    private ResourceAssignADGroupForm assignADGroupForm;
+    private RoleForm roleForm;
+    private RoleAssignPersonForm assignPersonForm;
+    private RoleAssignADGroupForm assignADGroupForm;
     private final Grid<Role> grid = new Grid<>(Role.class, false);
     private TextField filterTextField;
-    private Button addResourceRoleButton, deleteResourceRolesButton, importFromPersonsButton, importFromJSONButton;
+    private Button addResourceRoleButton, deleteResourceRolesButton, importButton, importFromJSONButton;
 
     public ResourceListView(IdentityService identityService, int resourceType) throws InstantiationException {
         this.identityService = identityService;
@@ -57,9 +59,7 @@ public class ResourceListView extends VerticalLayout {
         setSizeFull();
         addComponents();
         updateList();
-        closeResourceForm();
-        closeAssignPersonsForm();
-        closeAssignADGroupsForm();
+        enableComponents(true);
     }
 
     private void addComponents() {
@@ -83,17 +83,17 @@ public class ResourceListView extends VerticalLayout {
         deleteResourceRolesButton.addClickListener(click -> deleteResourceRoles());
         deleteResourceRolesButton.setEnabled(false);
 
-        importFromPersonsButton = new Button(new Icon(VaadinIcon.INSERT));
-        importFromPersonsButton.addThemeVariants(ButtonVariant.LUMO_ICON);
-        importFromPersonsButton.setText(getTranslation("importFromPersons"));
-        importFromPersonsButton.setIconAfterText(true);
-        importFromPersonsButton.getElement().setAttribute("aria-label", getTranslation("importFromPersons"));
-        importFromPersonsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
-        importFromPersonsButton.addClickListener(click -> {
-            if (roleResource.isOrgResource()) {
-                importOrgUnitsFromPersons();
-            }
-        });
+        importButton = new Button(new Icon(VaadinIcon.INSERT));
+        importButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        if (roleResource.isOrgResource()) {
+            importButton.setText(getTranslation("importFromPersons"));
+        } else {
+            importButton.setText(getTranslation("importFromGroups"));
+        }
+        importButton.setIconAfterText(true);
+        importButton.getElement().setAttribute("aria-label", getTranslation("importFromGroups"));
+        importButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        importButton.addClickListener(click -> importResourcesFromGroups());
 
         // import Roles from JSON
         importFromJSONButton = new Button(new Icon(VaadinIcon.INSERT));
@@ -105,7 +105,7 @@ public class ResourceListView extends VerticalLayout {
         importFromJSONButton.addClickListener(click -> importResourcesFromJSON());
 
         HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addResourceRoleButton,
-                deleteResourceRolesButton, importFromPersonsButton, importFromJSONButton);
+                deleteResourceRolesButton, importButton, importFromJSONButton);
         toolbar.addClassName("toolbar");
 
         grid.addClassNames(roleResource.getViewClassName().concat("-grid"));
@@ -130,36 +130,39 @@ public class ResourceListView extends VerticalLayout {
             }
         });
 
-        resourceRoleForm = new ResourceRoleForm();
-        resourceRoleForm.setWidthFull();
-        resourceRoleForm.addListener(ResourceRoleForm.SaveEvent.class, this::saveResourceRole);
-        resourceRoleForm.addListener(ResourceRoleForm.AssignPersonsEvent.class, this::addPersons);
-        resourceRoleForm.addListener(ResourceRoleForm.AssignADGroupsEvent.class, this::addADGroups);
-        resourceRoleForm.addListener(ResourceRoleForm.DeleteEvent.class, this::deleteResourceRole);
-        resourceRoleForm.addListener(ResourceRoleForm.CloseEvent.class, event -> closeResourceForm());
+        roleForm = new RoleForm(roleResourceList);
+        roleForm.setWidthFull();
+        roleForm.addListener(RoleForm.SaveEvent.class, this::saveResourceRole);
+        roleForm.addListener(RoleForm.AssignPersonsEvent.class, this::addPersons);
+        roleForm.addListener(RoleForm.AssignADGroupsEvent.class, this::addADGroups);
+        roleForm.addListener(RoleForm.DeleteEvent.class, this::deleteResourceRole);
+        roleForm.addListener(RoleForm.CloseEvent.class, event -> closeRoleForm());
+        roleForm.setVisible(false);
 
-        assignPersonForm = new ResourceAssignPersonForm(identityService);
+        assignPersonForm = new RoleAssignPersonForm(identityService);
         assignPersonForm.setWidthFull();
-        assignPersonForm.addListener(ResourceAssignPersonForm.SaveEvent.class, this::saveAssignedPersons);
-        assignPersonForm.addListener(ResourceAssignPersonForm.CloseEvent.class, event -> closeAssignPersonsForm());
+        assignPersonForm.addListener(RoleAssignPersonForm.SaveEvent.class, this::saveAssignedPersons);
+        assignPersonForm.addListener(RoleAssignPersonForm.CloseEvent.class, event -> closeAssignPersonsForm(event.getRole()));
+        assignPersonForm.setVisible(false);
 
-        assignADGroupForm = new ResourceAssignADGroupForm(identityService);
+        assignADGroupForm = new RoleAssignADGroupForm(identityService);
         assignADGroupForm.setWidthFull();
-        assignADGroupForm.addListener(ResourceAssignADGroupForm.SaveEvent.class, this::saveAssignedADGroups);
-        assignADGroupForm.addListener(ResourceAssignADGroupForm.CloseEvent.class, event -> closeAssignADGroupsForm());
+        assignADGroupForm.addListener(RoleAssignADGroupForm.SaveEvent.class, this::saveAssignedADGroups);
+        assignADGroupForm.addListener(RoleAssignADGroupForm.CloseEvent.class, event -> closeAssignADGroupsForm(event.getRole()));
+        assignADGroupForm.setVisible(false);
 
-        FlexLayout content = new FlexLayout(grid, resourceRoleForm, assignPersonForm, assignADGroupForm);
+        FlexLayout content = new FlexLayout(grid, roleForm, assignPersonForm, assignADGroupForm);
         content.setFlexGrow(2, grid);
-        content.setFlexGrow(1, resourceRoleForm, assignPersonForm, assignADGroupForm);
-        content.setFlexShrink(0, resourceRoleForm, assignPersonForm, assignADGroupForm);
+        content.setFlexGrow(1, roleForm, assignPersonForm, assignADGroupForm);
+        content.setFlexShrink(0, roleForm, assignPersonForm, assignADGroupForm);
         content.addClassNames("content", "gap-m");
         content.setSizeFull();
 
         add(toolbar, content);
     }
 
-    private void saveResourceRole(ResourceRoleForm.SaveEvent event) {
-        identityService.saveRole(event.getItem());
+    private void saveResourceRole(RoleForm.SaveEvent event) {
+        identityService.saveRole(event.getRole());
         updateList();
     }
 
@@ -190,19 +193,19 @@ public class ResourceListView extends VerticalLayout {
 
     }
 
-    private void deleteResourceRole(ResourceRoleForm.DeleteEvent event) {
-        identityService.deleteRole(event.getItem());
+    private void deleteResourceRole(RoleForm.DeleteEvent event) {
+        identityService.deleteRole(event.getRole());
         updateList();
-        closeResourceForm();
+        closeRoleForm();
     }
 
     public void editResource(Role role) {
         if (role == null) {
-            closeResourceForm();
+            closeRoleForm();
         } else {
-            resourceRoleForm.setResourceRole(role);
+            roleForm.setRole(role);
             enableComponents(false);
-            resourceRoleForm.setVisible(true);
+            roleForm.setVisible(true);
             addClassName("editing");
         }
     }
@@ -213,7 +216,8 @@ public class ResourceListView extends VerticalLayout {
         editResource(role);
     }
 
-    private void importOrgUnitsFromPersons() {
+    private void importResourcesFromGroups() {
+        // import org units from persons department
         if (roleResource.isOrgResource()) {
             Dialog dialog = new Dialog();
             if (identityService.countRoles(roleResource) > 0) {
@@ -222,21 +226,11 @@ public class ResourceListView extends VerticalLayout {
 
                 TextArea messageArea = new TextArea();
                 messageArea.setWidthFull();
-                messageArea.setValue(getTranslation("org.importFromPersons.dialog.message"));
+                messageArea.setValue(getTranslation("importOrgFromPersons"));
 
                 Button okButton = new Button("Ok", clickEvent -> {
                     dialog.close();
-                    if (!identityService.importOrgUnitsFromPersons(false)) {
-                        NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
-                    }
-                    updateList();
-                });
-                okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-                okButton.getStyle().set("margin-right", "auto");
-
-                Button partiallyButton = new Button(getTranslation("question.missing"), clickEvent -> {
-                    dialog.close();
-                    if (!identityService.importOrgUnitsFromPersons(true)) {
+                    if (!identityService.importOrgRolesFromPersons()) {
                         NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
                     }
                     updateList();
@@ -249,13 +243,88 @@ public class ResourceListView extends VerticalLayout {
 
                 dialog.add(messageArea);
                 dialog.getFooter().add(okButton);
-                dialog.getFooter().add(partiallyButton);
                 dialog.getFooter().add(cancelButton);
 
                 dialog.open();
             } else {
                 dialog.close();
-                if (!identityService.importOrgUnitsFromPersons(false)) {
+                if (!identityService.importOrgRolesFromPersons()) {
+                    NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
+                }
+                updateList();
+            }
+        }
+
+        // import project roles from ad groups (name)
+        if (roleResource.isProjectResource()) {
+            Dialog dialog = new Dialog();
+            if (identityService.countRoles(roleResource) > 0) {
+                // data can be override
+                dialog.setHeaderTitle(getTranslation("question.updateData"));
+
+                TextArea messageArea = new TextArea();
+                messageArea.setWidthFull();
+                messageArea.setValue(getTranslation("importResourcesFromGroups"));
+
+                Button okButton = new Button("Ok", clickEvent -> {
+                    dialog.close();
+                    if (!identityService.importRolesFromGroups(roleResource)) {
+                        NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
+                    }
+                    updateList();
+                });
+                okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+                okButton.getStyle().set("margin-right", "auto");
+
+                Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
+                cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+                dialog.add(messageArea);
+                dialog.getFooter().add(okButton);
+                dialog.getFooter().add(cancelButton);
+
+                dialog.open();
+            } else {
+                dialog.close();
+                if (!identityService.importRolesFromGroups(roleResource)) {
+                    NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
+                }
+                updateList();
+            }
+        }
+
+        // import file share resources roles from ad groups (name)
+        if (roleResource.isFileShareResource()) {
+            Dialog dialog = new Dialog();
+            if (identityService.countRoles(roleResource) > 0) {
+                // data can be override
+                dialog.setHeaderTitle(getTranslation("question.updateData"));
+
+                TextArea messageArea = new TextArea();
+                messageArea.setWidthFull();
+                messageArea.setValue(getTranslation("importResourcesFromGroups"));
+
+                Button okButton = new Button("Ok", clickEvent -> {
+                    dialog.close();
+                    if (!identityService.importRolesFromGroups(roleResource)) {
+                        NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
+                    }
+                    updateList();
+                });
+                okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+                okButton.getStyle().set("margin-right", "auto");
+
+                Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
+                cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+                dialog.add(messageArea);
+                dialog.getFooter().add(okButton);
+                dialog.getFooter().add(cancelButton);
+
+                dialog.open();
+            } else {
+                dialog.close();
+                if (!identityService.importRolesFromGroups(roleResource)) {
                     NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
                 }
                 updateList();
@@ -267,32 +336,40 @@ public class ResourceListView extends VerticalLayout {
         NotificationPopUp.show(NotificationPopUp.INFO, getTranslation("not.implemented"));
     }
 
-    private void addPersons(ResourceRoleForm.AssignPersonsEvent event) {
-        closeResourceForm();
+    private void addPersons(RoleForm.AssignPersonsEvent event) {
+        closeRoleForm();
         enableComponents(false);
         assignPersonForm.setVisible(true);
-        assignPersonForm.setData(event.getItem(), identityService.findAllPersons(null));
-        addClassName("editing");
+        assignPersonForm.setData(event.getRole(), identityService.findAllPersons(null));
+        addClassName("editing-assign-persons-form");
     }
 
-    private void saveAssignedPersons(ResourceAssignPersonForm.SaveEvent event) {
-        identityService.saveRole(event.getOrgUnit());
-        closeAssignPersonsForm();
-        updateList();
+    private void saveAssignedPersons(RoleAssignPersonForm.SaveEvent event) {
+        Role role = event.getRole();
+        if (identityService.saveRole(role)) {
+            closeAssignPersonsForm(role);
+            updateList();
+        } else {
+            NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.save"));
+        }
     }
 
-    private void addADGroups(ResourceRoleForm.AssignADGroupsEvent event) {
-        closeResourceForm();
+    private void addADGroups(RoleForm.AssignADGroupsEvent event) {
+        closeRoleForm();
         enableComponents(false);
+        assignADGroupForm.setData(event.getRole(), identityService.findAllADGroups(null));
         assignADGroupForm.setVisible(true);
-        // assignADGroupForm.setData(event.getItem(), identityService.findAllRoles(null));
-        addClassName("editing");
+        addClassName("editing-assign-ad-groups-form");
     }
 
-    private void saveAssignedADGroups(ResourceAssignADGroupForm.SaveEvent event) {
-        //orgUnitService.saveResourceRole(event.getItem());
-        closeAssignADGroupsForm();
-        updateList();
+    private void saveAssignedADGroups(RoleAssignADGroupForm.SaveEvent event) {
+        Role role = event.getRole();
+        if (identityService.saveRole(role)) {
+            closeAssignADGroupsForm(role);
+            updateList();
+        } else {
+            NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.save"));
+        }
     }
 
     private void updateList() {
@@ -317,41 +394,48 @@ public class ResourceListView extends VerticalLayout {
         }
     }
 
-    private void closeResourceForm() {
-        resourceRoleForm.setResourceRole(null);
-        resourceRoleForm.setVisible(false);
+    private void closeRoleForm() {
+        roleForm.setRole(null);
+        roleForm.setVisible(false);
         enableComponents(true);
         removeClassName("editing");
     }
 
-    private void closeAssignPersonsForm() {
+    private void closeAssignPersonsForm(Role role) {
         assignPersonForm.setData(null, null);
         assignPersonForm.setVisible(false);
-        enableComponents(true);
-        removeClassName("editing");
+        roleForm.setRole(role);
+        roleForm.setVisible(true);
+        removeClassName("editing-assign-persons-form");
     }
 
-    private void closeAssignADGroupsForm() {
+    private void closeAssignADGroupsForm(Role role) {
         assignADGroupForm.setData(null, null);
         assignADGroupForm.setVisible(false);
-        enableComponents(true);
-        removeClassName("editing");
+        roleForm.setRole(role);
+        roleForm.setVisible(true);
+        removeClassName("editing-assign-ad-groups-form");
     }
 
     private void enableComponents(boolean enabled) {
         filterTextField.setEnabled(enabled);
         addResourceRoleButton.setEnabled(enabled);
+        importButton.setEnabled(enabled);
         importFromJSONButton.setEnabled(enabled);
 
         if (enabled) {
-            if (identityService.countPersons() == 0) {
-                importFromPersonsButton.setEnabled(false);
+            if (roleResource.isOrgResource()) {
+                if (identityService.countPersons() == 0) {
+                    importButton.setEnabled(false);
+                }
+            } else {
+                if (identityService.countADGroups() == 0) {
+                    importButton.setEnabled(false);
+                }
             }
             if (selectedResourceRoles.size() == 0) {
                 deleteResourceRolesButton.setEnabled(false);
             }
-        } else {
-            importFromPersonsButton.setEnabled(enabled);
         }
     }
 }

@@ -2,6 +2,7 @@ package de.hirola.adroles.views.persons;
 
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.textfield.TextArea;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Person;
@@ -85,6 +86,9 @@ public class PersonListView extends VerticalLayout {
                 .setSortable(true);
         grid.addColumn(Person::getDescription).setHeader(getTranslation("description"))
                 .setSortable(true);
+        grid.addColumn(person -> person.isEmployee() ? getTranslation("yes") : getTranslation("no"))
+                .setHeader(getTranslation("employee"))
+                .setSortable(true);
         grid.getColumns().forEach(col -> col.setAutoWidth(true));
         grid.setSelectionMode(Grid.SelectionMode.MULTI);
         grid.addItemClickListener(event -> editPerson(event.getItem()));
@@ -110,6 +114,9 @@ public class PersonListView extends VerticalLayout {
         assignRoleForm.addListener(PersonAssignRoleForm.SaveEvent.class, this::saveAssignedRoles);
         assignRoleForm.addListener(PersonAssignRoleForm.CloseEvent.class, event -> closeAssignRolesForm());
 
+        // context menu to change the role resource of selected roles
+        PersonContextMenu contextMenu = new PersonContextMenu(grid, this);
+
         FlexLayout content = new FlexLayout(grid, personForm, assignRoleForm);
         content.setFlexGrow(2, grid);
         content.setFlexGrow(1, personForm, assignRoleForm);
@@ -132,17 +139,7 @@ public class PersonListView extends VerticalLayout {
 
             Button okButton = new Button("Ok", clickEvent -> {
                 dialog.close();
-                if (!identityService.importPersonsFromAD(false)) {
-                    NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
-                }
-                updateList();
-            });
-            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-            okButton.getStyle().set("margin-right", "auto");
-
-            Button partiallyButton = new Button(getTranslation("question.missing"), clickEvent -> {
-                dialog.close();
-                if (!identityService.importPersonsFromAD(true)) {
+                if (!identityService.importPersonsFromAD()) {
                     NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
                 }
                 updateList();
@@ -155,17 +152,26 @@ public class PersonListView extends VerticalLayout {
 
             dialog.add(messageArea);
             dialog.getFooter().add(okButton);
-            dialog.getFooter().add(partiallyButton);
             dialog.getFooter().add(cancelButton);
 
             dialog.open();
         } else {
             dialog.close();
-            if (!identityService.importPersonsFromAD(false)) {
+            if (!identityService.importPersonsFromAD()) {
                 NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
             }
             updateList();
         }
+    }
+
+    private void updateEmployeeStatusOfSelectedPersons(boolean isEmployee) {
+        for (Person person: selectedPersons) {
+            person.setEmployee(isEmployee);
+            if (!identityService.savePerson(person)) {
+                NotificationPopUp.show(NotificationPopUp.ERROR, "error.save");
+            }
+        }
+        updateList();
     }
 
     private void addPerson() {
@@ -256,6 +262,10 @@ public class PersonListView extends VerticalLayout {
         removeClassName("editing");
     }
 
+    private boolean matchesTerm(String value, String searchTerm) {
+        return value.toLowerCase().contains(searchTerm.toLowerCase());
+    }
+
     private void enableComponents(boolean enabled) {
         filterTextField.setEnabled(enabled);
         addPersonButton.setEnabled(enabled);
@@ -271,7 +281,43 @@ public class PersonListView extends VerticalLayout {
         }
     }
 
-    private boolean matchesTerm(String value, String searchTerm) {
-        return value.toLowerCase().contains(searchTerm.toLowerCase());
+    private static class PersonContextMenu extends GridContextMenu<Person> {
+
+        private final PersonListView listView;
+        public PersonContextMenu(Grid<Person> target, PersonListView listView) {
+            super(target);
+            this.listView = listView;
+
+            addItem(getTranslation("setEmployeeStatus"), event -> event.getItem().ifPresent(person -> {
+                showDialog(true);
+            }));
+
+            addItem(getTranslation("unsetEmployeeStatus"), event -> event.getItem().ifPresent(person -> {
+                showDialog(false);
+            }));
+
+        }
+
+        private void showDialog(boolean isEmployee) {
+            Dialog dialog = new Dialog();
+            dialog.setHeaderTitle(getTranslation("question.employeeStatusChange"));
+
+            Button okButton = new Button("Ok", clickEvent -> {
+                listView.updateEmployeeStatusOfSelectedPersons(isEmployee);
+                dialog.close();
+            });
+            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+            okButton.getStyle().set("margin-right", "auto");
+
+            Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> {
+                dialog.close();
+            });
+            cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+            dialog.getFooter().add(okButton);
+            dialog.getFooter().add(cancelButton);
+
+            dialog.open();
+        }
     }
 }

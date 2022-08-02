@@ -4,6 +4,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
+import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
@@ -11,6 +13,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.provider.QuerySortOrder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
@@ -26,6 +29,7 @@ import javax.annotation.security.PermitAll;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.stream.Stream;
 
 @Route(value="roles", layout = MainLayout.class)
 @PageTitle("Roles Overview | AD-Roles")
@@ -33,21 +37,25 @@ import java.util.List;
 public class RolesListView extends VerticalLayout {
     private final Hashtable<String, RoleResource> roleResourceList = new Hashtable<>();
     private RoleForm roleForm;
+    private RoleAssignPersonForm assignPersonForm;
+
+    private RoleAssignADUserForm assignADUserForm;
+    private RoleAssignADGroupForm assignADGroupForm;
     private final List<Role> selectedRoles = new ArrayList<>();
     private final Grid<Role> grid = new Grid<>(Role.class, false);
     private TextField filterTextField;
     private final IdentityService identityService;
 
-    private Button addRoleButton, importFromGroupsButton, deleteRolesButton;
+    private Button addRoleButton, importFromGroupsButton, importFromJSONButton, deleteRolesButton;
 
     public RolesListView(IdentityService identityService) {
         this.identityService = identityService;
         loadAvailableRoleResources();
-        addClassName("rol-list-view");
+        addClassName("role-list-view");
         setSizeFull();
         addComponents();
         updateList();
-        closeForm();
+        enableComponents(true);
     }
 
     private void addComponents() {
@@ -72,14 +80,14 @@ public class RolesListView extends VerticalLayout {
 
         importFromGroupsButton = new Button(new Icon(VaadinIcon.INSERT));
         importFromGroupsButton.addThemeVariants(ButtonVariant.LUMO_ICON);
-        importFromGroupsButton.setText(getTranslation("roles.importFromGroups"));
+        importFromGroupsButton.setText(getTranslation("importFromGroups"));
         importFromGroupsButton.setIconAfterText(true);
-        importFromGroupsButton.getElement().setAttribute("aria-label", getTranslation("roles.importFromGroups"));
+        importFromGroupsButton.getElement().setAttribute("aria-label", getTranslation("importFromGroups"));
         importFromGroupsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
         importFromGroupsButton.addClickListener(click -> importRolesFromGroups());
 
         // import Roles from JSON
-        Button importFromJSONButton = new Button(new Icon(VaadinIcon.INSERT));
+        importFromJSONButton = new Button(new Icon(VaadinIcon.INSERT));
         importFromJSONButton.addThemeVariants(ButtonVariant.LUMO_ICON);
         importFromJSONButton.setText(getTranslation("importFromJSON"));
         importFromJSONButton.setIconAfterText(true);
@@ -103,10 +111,16 @@ public class RolesListView extends VerticalLayout {
                         }
                     }
                     return VaadinIcon.CUBE.create();
-                }))
+                }), "roleResource")
                 .setHeader(getTranslation("roleResource"))
                 .setWidth(Global.Component.IMAGE_COLUMN_WIDTH)
-                .setSortable(true);
+                .setSortable(true)
+                .setSortOrderProvider(direction -> Stream.of(new QuerySortOrder("roleResource", direction)))
+                .setComparator((role1, role2) -> {
+                   RoleResource roleResource1 = role1.getRoleResource();
+                   RoleResource roleResource2 = role2.getRoleResource();
+                    return roleResource1.compareTo(roleResource2);
+                });
         grid.addColumn(Role::getName).setHeader(getTranslation("name"))
                 .setSortable(true)
                 .setKey(Global.Component.FOOTER_COLUMN_KEY)
@@ -135,17 +149,41 @@ public class RolesListView extends VerticalLayout {
         });
 
         roleForm = new RoleForm(roleResourceList);
-        roleForm.setSizeFull();
+        roleForm.setWidthFull();
         roleForm.addListener(RoleForm.SaveEvent.class, this::saveRole);
-        roleForm.addListener(RoleForm.AssignPersonsEvent.class, this::addPersons);
-        roleForm.addListener(RoleForm.AssignADGroupsEvent.class, this::addADGroups);
+        roleForm.addListener(RoleForm.AssignPersonsEvent.class, this::assignPersons);
+        roleForm.addListener(RoleForm.AssignADUsersEvent.class, this::assignADUsers);
+        roleForm.addListener(RoleForm.AssignADGroupsEvent.class, this::assignADGroups);
         roleForm.addListener(RoleForm.DeleteEvent.class, this::deleteRole);
-        roleForm.addListener(RoleForm.CloseEvent.class, event -> closeForm());
+        roleForm.addListener(RoleForm.CloseEvent.class, event -> closeRoleForm());
+        roleForm.setVisible(false);
 
-        FlexLayout content = new FlexLayout(grid, roleForm);
+        assignPersonForm = new RoleAssignPersonForm(identityService);
+        assignPersonForm.setWidthFull();
+        assignPersonForm.addListener(RoleAssignPersonForm.SaveEvent.class, this::saveAssignedPersons);
+        assignPersonForm.addListener(RoleAssignPersonForm.CloseEvent.class, event -> closeAssignPersonsForm(event.getRole()));
+        assignPersonForm.setVisible(false);
+
+        assignADUserForm = new RoleAssignADUserForm(identityService);
+        assignADUserForm.setWidthFull();
+        assignADUserForm.addListener(RoleAssignADUserForm.SaveEvent.class, this::saveAssignedADUsers);
+        assignADUserForm.addListener(RoleAssignADUserForm.CloseEvent.class, event -> closeAssignADUsersForm(event.getRole()));
+        assignADUserForm.setVisible(false);
+
+        assignADGroupForm = new RoleAssignADGroupForm(identityService);
+        assignADGroupForm.setWidthFull();
+        assignADGroupForm.addListener(RoleAssignADGroupForm.SaveEvent.class, this::saveAssignedADGroups);
+        assignADGroupForm.addListener(RoleAssignADGroupForm.CloseEvent.class, event -> closeAssignADGroupsForm(event.getRole()));
+        assignADGroupForm.setVisible(false);
+
+        // context menu to change the role resource of selected roles
+        RoleContextMenu contextMenu = new RoleContextMenu(grid, this);
+
+        FlexLayout content = new FlexLayout(grid, contextMenu, roleForm,
+                assignPersonForm, assignADUserForm, assignADGroupForm);
         content.setFlexGrow(2, grid);
-        content.setFlexGrow(1, roleForm);
-        content.setFlexShrink(0, roleForm);
+        content.setFlexGrow(1, roleForm, assignPersonForm, assignADUserForm, assignADGroupForm);
+        content.setFlexShrink(0, roleForm, assignPersonForm, assignADUserForm, assignADGroupForm);
         content.addClassNames("content", "gap-m");
         content.setSizeFull();
 
@@ -204,12 +242,12 @@ public class RolesListView extends VerticalLayout {
     private void saveRole(RoleForm.SaveEvent event) {
         identityService.saveRole(event.getRole());
         updateList();
-        closeForm();
+        closeRoleForm();
     }
 
     public void editRole(Role role) {
         if (role == null) {
-            closeForm();
+            closeRoleForm();
         } else {
             enableComponents(false);
             roleForm.setRole(role);
@@ -221,7 +259,7 @@ public class RolesListView extends VerticalLayout {
     private void deleteRole(RoleForm.DeleteEvent event) {
         identityService.deleteRole(event.getRole());
         updateList();
-        closeForm();
+        closeRoleForm();
     }
 
     private void deleteRoles() {
@@ -251,16 +289,58 @@ public class RolesListView extends VerticalLayout {
 
     }
 
-    private void addPersons(RoleForm.AssignPersonsEvent event) {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Add persons");
-        dialog.open();
+    private void assignPersons(RoleForm.AssignPersonsEvent event) {
+        closeRoleForm();
+        enableComponents(false);
+        assignPersonForm.setData(event.getRole(), identityService.findAllPersons(null));
+        assignPersonForm.setVisible(true);
+        addClassName("editing-assign-persons-form");
     }
 
-    private void addADGroups(RoleForm.AssignADGroupsEvent event) {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle("Add groups");
-        dialog.open();
+    private void saveAssignedPersons(RoleAssignPersonForm.SaveEvent event) {
+        Role role = event.getRole();
+        if (identityService.saveRole(role)) {
+            closeAssignPersonsForm(role);
+            updateList();
+        } else {
+            NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.save"));
+        }
+    }
+
+    private void assignADUsers(RoleForm.AssignADUsersEvent event) {
+        closeRoleForm();
+        enableComponents(false);
+        assignADUserForm.setData(event.getRole(), identityService.findAllManageableADUsers());
+        assignADUserForm.setVisible(true);
+        addClassName("editing-assign-ad-users-form");
+    }
+
+    private void saveAssignedADUsers(RoleAssignADUserForm.SaveEvent event) {
+        Role role = event.getRole();
+        if (identityService.saveRole(role)) {
+            closeAssignADUsersForm(role);
+            updateList();
+        } else {
+            NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.save"));
+        }
+    }
+
+    private void assignADGroups(RoleForm.AssignADGroupsEvent event) {
+        closeRoleForm();
+        enableComponents(false);
+        assignADGroupForm.setData(event.getRole(), identityService.findAllADGroups(null));
+        assignADGroupForm.setVisible(true);
+        addClassName("editing-assign-ad-groups-form");
+    }
+
+    private void saveAssignedADGroups(RoleAssignADGroupForm.SaveEvent event) {
+        Role role = event.getRole();
+        if (identityService.saveRole(role)) {
+            closeAssignADGroupsForm(role);
+            updateList();
+        } else {
+            NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.save"));
+        }
     }
 
     private void updateList() {
@@ -285,16 +365,62 @@ public class RolesListView extends VerticalLayout {
         }
     }
 
-    private void closeForm() {
+    private void updateResourceOfSelectedRoles(int type) {
+        if (selectedRoles.size() > 0) {
+            RoleResource roleResource = identityService.getRoleResource(type);
+            if (roleResource != null) {
+                for (Role role : selectedRoles) {
+                    role.setRoleResource(roleResource);
+                    if (!identityService.saveRole(role)) {
+                        NotificationPopUp.show(NotificationPopUp.ERROR,
+                                getTranslation("error.save"));
+                        break;
+                    }
+                }
+            } else {
+                NotificationPopUp.show(NotificationPopUp.ERROR,
+                        getTranslation("error.changeRoleResource"),
+                        getTranslation("error.roleResource.isNull"));
+            }
+        }
+        updateList();
+    }
+
+    private void closeRoleForm() {
         roleForm.setRole(null);
         enableComponents(true);
         roleForm.setVisible(false);
         removeClassName("editing");
     }
 
+    private void closeAssignPersonsForm(Role role) {
+        assignPersonForm.setData(null, null);
+        assignPersonForm.setVisible(false);
+        roleForm.setRole(role);
+        roleForm.setVisible(true);
+        removeClassName("editing-assign-persons-form");
+    }
+
+    private void closeAssignADUsersForm(Role role) {
+        assignADUserForm.setData(null, null);
+        assignADUserForm.setVisible(false);
+        roleForm.setRole(role);
+        roleForm.setVisible(true);
+        removeClassName("editing-assign-ad-users-form");
+    }
+
+    private void closeAssignADGroupsForm(Role role) {
+        assignADGroupForm.setData(null, null);
+        assignADGroupForm.setVisible(false);
+        roleForm.setRole(role);
+        roleForm.setVisible(true);
+        removeClassName("editing-assign-ad-groups-form");
+    }
+
     private void enableComponents(boolean enabled) {
         filterTextField.setEnabled(enabled);
         addRoleButton.setEnabled(enabled);
+        importFromJSONButton.setEnabled(enabled);
         if (selectedRoles.size() == 0) {
             deleteRolesButton.setEnabled(false);
         } else {
@@ -304,6 +430,53 @@ public class RolesListView extends VerticalLayout {
             importFromGroupsButton.setEnabled(false);
         } else {
             importFromGroupsButton.setEnabled(enabled);
+        }
+    }
+
+    private static class RoleContextMenu extends GridContextMenu<Role> {
+
+        private final RolesListView listView;
+        public RoleContextMenu(Grid<Role> target, RolesListView listView) {
+            super(target);
+            this.listView = listView;
+
+            addItem(getTranslation("changeRoleResource")); // info
+
+            add(new Hr());
+
+            addItem(getTranslation("standard"), event -> event.getItem().ifPresent(role -> {
+                showDialogForType(Global.ROLE_RESOURCE.DEFAULT_ROLE);
+            }));
+
+            addItem(getTranslation("project"), event -> event.getItem().ifPresent(role -> {
+                showDialogForType(Global.ROLE_RESOURCE.PROJECT_ROLE);
+            }));
+
+            addItem(getTranslation("fileShare"), event -> event.getItem().ifPresent(role -> {
+                showDialogForType(Global.ROLE_RESOURCE.FILE_SHARE_ROLE);
+            }));
+        }
+
+        private void showDialogForType(int type) {
+            Dialog dialog = new Dialog();
+            dialog.setHeaderTitle(getTranslation("question.roleResourceChange"));
+
+            Button okButton = new Button("Ok", clickEvent -> {
+                listView.updateResourceOfSelectedRoles(type);
+                dialog.close();
+            });
+            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+            okButton.getStyle().set("margin-right", "auto");
+
+            Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> {
+                dialog.close();
+            });
+            cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+            dialog.getFooter().add(okButton);
+            dialog.getFooter().add(cancelButton);
+
+            dialog.open();
         }
     }
 }

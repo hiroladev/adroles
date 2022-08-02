@@ -22,6 +22,7 @@ public class ADUserForm extends FormLayout {
   private  final Binder<ADUser> binder = new BeanValidationBinder<>(ADUser.class);
   private final TextField logonName = new TextField(getTranslation("logonName"));
   private final TextField distinguishedName = new TextField(getTranslation("distinguishedName"));
+  private final Checkbox isRoleManaged = new Checkbox(getTranslation("isRoleManaged"));
   private final Checkbox isAdminAccount = new Checkbox(getTranslation("adminAccount"));
   private final Checkbox isServiceAccount = new Checkbox(getTranslation("serviceAccount"));
   private Button saveButton;
@@ -40,7 +41,7 @@ public class ADUserForm extends FormLayout {
     distinguishedName.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
 
     VerticalLayout formsLayout = new VerticalLayout(logonName, distinguishedName,
-            isAdminAccount, isServiceAccount);
+            isRoleManaged, isAdminAccount, isServiceAccount);
     formsLayout.setPadding(true);
 
     saveButton = new Button(getTranslation("save"));
@@ -67,9 +68,11 @@ public class ADUserForm extends FormLayout {
     this.adUser = adUser;
     binder.readBean(adUser);
     if (adUser != null) { // workaround: boolean not (correct) bound as instance field
+      isRoleManaged.setValue(adUser.isRoleManaged());
       isAdminAccount.setValue(adUser.isAdminAccount());
       isServiceAccount.setValue(adUser.isServiceAccount());
     } else {
+      isRoleManaged.setValue(false);
       isAdminAccount.setValue(false);
       isServiceAccount.setValue(false);
     }
@@ -77,7 +80,9 @@ public class ADUserForm extends FormLayout {
 
   private void validateAndSave() {
     try {
-      adUser.setAdminAccount(isAdminAccount.getValue()); // workaround: boolean not (correct) bound as instance field
+      // boolean not (correct) bound as instance field
+      adUser.setRoleManaged(isRoleManaged.getValue());
+      adUser.setAdminAccount(isAdminAccount.getValue());
       adUser.setServiceAccount(isServiceAccount.getValue());
       binder.writeBean(adUser);
       fireEvent(new SaveEvent(this, adUser));
