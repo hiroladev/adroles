@@ -16,12 +16,12 @@ import de.hirola.adroles.views.MainLayout;
 
 import javax.annotation.security.PermitAll;
 
-@Route(value = "distribution-list", layout = MainLayout.class)
-@PageTitle("Distribution Lists | AD-Roles")
+@Route(value = "mail-resources", layout = MainLayout.class)
+@PageTitle("E-Mail resources | AD-Roles")
 @PermitAll
-public class DistributionListRoleListView extends ResourceListView {
+public class MailResourceRoleListView extends ResourceListView {
 
-    public DistributionListRoleListView(IdentityService identityService) throws InstantiationException {
-        super(identityService, Global.ROLE_RESOURCE.DISTRIBUTION_LIST_ROLE);
+    public MailResourceRoleListView(IdentityService identityService) throws InstantiationException {
+        super(identityService, Global.ROLE_RESOURCE.EMAIL_RESOURCE_ROLE);
     }
 }

@@ -46,7 +46,7 @@ public class RolesListView extends VerticalLayout {
     private TextField filterTextField;
     private final IdentityService identityService;
 
-    private Button addRoleButton, importFromGroupsButton, importFromJSONButton, deleteRolesButton;
+    private Button addRoleButton, updateButton, importFromJSONButton, deleteRolesButton;
 
     public RolesListView(IdentityService identityService) {
         this.identityService = identityService;
@@ -78,13 +78,13 @@ public class RolesListView extends VerticalLayout {
         deleteRolesButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         deleteRolesButton.addClickListener(click -> deleteRoles());
 
-        importFromGroupsButton = new Button(new Icon(VaadinIcon.INSERT));
-        importFromGroupsButton.addThemeVariants(ButtonVariant.LUMO_ICON);
-        importFromGroupsButton.setText(getTranslation("importFromGroups"));
-        importFromGroupsButton.setIconAfterText(true);
-        importFromGroupsButton.getElement().setAttribute("aria-label", getTranslation("importFromGroups"));
-        importFromGroupsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
-        importFromGroupsButton.addClickListener(click -> importRolesFromGroups());
+        updateButton = new Button(new Icon(VaadinIcon.INSERT));
+        updateButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        updateButton.setText(getTranslation("updateFromGroups"));
+        updateButton.setIconAfterText(true);
+        updateButton.getElement().setAttribute("aria-label", getTranslation("updateFromGroups"));
+        updateButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        updateButton.addClickListener(click -> importRolesFromGroups());
 
         // import Roles from JSON
         importFromJSONButton = new Button(new Icon(VaadinIcon.INSERT));
@@ -143,8 +143,8 @@ public class RolesListView extends VerticalLayout {
             if (selection.getAllSelectedItems().size() == 0) {
                 deleteRolesButton.setEnabled(false);
             } else {
-                deleteRolesButton.setEnabled(true);
                 selectedRoles.addAll(selection.getAllSelectedItems());
+                deleteRolesButton.setEnabled(true);
             }
         });
 
@@ -188,7 +188,7 @@ public class RolesListView extends VerticalLayout {
         content.setSizeFull();
 
         HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addRoleButton, deleteRolesButton,
-                importFromGroupsButton, importFromJSONButton);
+                updateButton, importFromJSONButton);
         toolbar.addClassName("toolbar");
 
         add(toolbar, content);
@@ -196,17 +196,18 @@ public class RolesListView extends VerticalLayout {
 
     private void importRolesFromGroups() {
         Dialog dialog = new Dialog();
+        dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
         if (identityService.countRoles(roleResourceList.get(getTranslation("org"))) > 0) {
             // data can be override
             dialog.setHeaderTitle(getTranslation("question.updateData"));
 
             TextArea messageArea = new TextArea();
             messageArea.setWidthFull();
-            messageArea.setValue(getTranslation("roles.importFromGroups.dialog.message"));
+            messageArea.setValue(getTranslation("updateRolesFromGroups.dialog.message"));
 
             Button okButton = new Button("Ok", clickEvent -> {
                 dialog.close();
-                if (!identityService.importRolesFromGroups()) {
+                if (!identityService.updateRolesFromGroups()) {
                     NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
                 }
                 updateList();
@@ -224,7 +225,7 @@ public class RolesListView extends VerticalLayout {
             dialog.open();
         } else {
             dialog.close();
-            if (!identityService.importRolesFromGroups()) {
+            if (!identityService.updateRolesFromGroups()) {
                 NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
             }
             updateList();
@@ -346,6 +347,7 @@ public class RolesListView extends VerticalLayout {
     private void updateList() {
         List<Role> filteredRoles = identityService.findAllRoles(filterTextField.getValue(), null);
         grid.setItems(filteredRoles);
+        grid.deselectAll();
         grid.getColumnByKey(Global.Component.FOOTER_COLUMN_KEY)
                 .setFooter(String.format(getTranslation("role.sum") + ": %s", filteredRoles.size()));
     }
@@ -427,9 +429,9 @@ public class RolesListView extends VerticalLayout {
             deleteRolesButton.setEnabled(enabled);
         }
         if (identityService.countADGroups() == 0) {
-            importFromGroupsButton.setEnabled(false);
+            updateButton.setEnabled(false);
         } else {
-            importFromGroupsButton.setEnabled(enabled);
+            updateButton.setEnabled(enabled);
         }
     }
 
@@ -444,21 +446,22 @@ public class RolesListView extends VerticalLayout {
 
             add(new Hr());
 
-            addItem(getTranslation("standard"), event -> event.getItem().ifPresent(role -> {
-                showDialogForType(Global.ROLE_RESOURCE.DEFAULT_ROLE);
-            }));
+            addItem(getTranslation("standard"), event -> event.getItem().ifPresent(role ->
+                    showDialogForType(Global.ROLE_RESOURCE.DEFAULT_ROLE)));
 
-            addItem(getTranslation("project"), event -> event.getItem().ifPresent(role -> {
-                showDialogForType(Global.ROLE_RESOURCE.PROJECT_ROLE);
-            }));
+            addItem(getTranslation("project"), event -> event.getItem().ifPresent(role ->
+                    showDialogForType(Global.ROLE_RESOURCE.PROJECT_ROLE)));
 
-            addItem(getTranslation("fileShare"), event -> event.getItem().ifPresent(role -> {
-                showDialogForType(Global.ROLE_RESOURCE.FILE_SHARE_ROLE);
-            }));
+            addItem(getTranslation("fileShare"), event -> event.getItem().ifPresent(role ->
+                    showDialogForType(Global.ROLE_RESOURCE.FILE_SHARE_ROLE)));
+
+            addItem(getTranslation("emailResource"), event -> event.getItem().ifPresent(role ->
+                    showDialogForType(Global.ROLE_RESOURCE.EMAIL_RESOURCE_ROLE)));
         }
 
         private void showDialogForType(int type) {
             Dialog dialog = new Dialog();
+            dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
             dialog.setHeaderTitle(getTranslation("question.roleResourceChange"));
 
             Button okButton = new Button("Ok", clickEvent -> {
@@ -468,9 +471,7 @@ public class RolesListView extends VerticalLayout {
             okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
             okButton.getStyle().set("margin-right", "auto");
 
-            Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> {
-                dialog.close();
-            });
+            Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> dialog.close());
             cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
             dialog.getFooter().add(okButton);

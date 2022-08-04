@@ -15,9 +15,11 @@ public interface ADUserRepository extends JpaRepository<ADUser, Integer> {
             "order by a.logonName")
     List<ADUser> search(@Param("searchTerm") String searchTerm);
 
-    Optional<ADUser> findFirstByDistinguishedName(String distinguishedName);
+    Optional<ADUser> findFirstByObjectSID(String objectSID);
 
     List<ADUser> findByIsRoleManagedTrueOrderByLogonNameAsc();
+
+    List<ADUser> findByPerson_IdAndIsRoleManagedTrue(Integer id);
 
     long countByPasswordExpiresFalse();
 }

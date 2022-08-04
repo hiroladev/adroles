@@ -25,8 +25,8 @@ public class ADGroupForm extends FormLayout {
   private final TextField name = new TextField(getTranslation("name"));
   private final TextField distinguishedName = new TextField(getTranslation("distinguishedName"));
   private final TextField description = new TextField(getTranslation("description"));
-  final RadioButtonGroup<String> groupAreaRadioGroup = new RadioButtonGroup<>();
-  final RadioButtonGroup<String> groupTypeRadioGroup = new RadioButtonGroup<>();
+  private final RadioButtonGroup<String> groupAreaRadioGroup = new RadioButtonGroup<>();
+  private final RadioButtonGroup<String> groupTypeRadioGroup = new RadioButtonGroup<>();
   private final Checkbox isAdminGroup = new Checkbox(getTranslation("adminGroup"));
   private Button saveButton;
 
@@ -80,19 +80,20 @@ public class ADGroupForm extends FormLayout {
     // workaround: boolean not (correct) bound as instance field
     if (adGroup != null) {
       isAdminGroup.setValue(adGroup.isAdminGroup());
-      
+
       switch (adGroup.getGroupArea()) {
-        case Global.ADGroupArea.GLOBAL:
+        case Global.ADGroupArea.GLOBAL -> {
           groupAreaRadioGroup.setValue(getTranslation("global"));
           formsLayout.add(groupAreaRadioGroup);
-          break;
-        case Global.ADGroupArea.UNIVERSAL:
+        }
+        case Global.ADGroupArea.UNIVERSAL -> {
           groupAreaRadioGroup.setValue(getTranslation("universal"));
           formsLayout.add(groupAreaRadioGroup);
-          break;
-        default:
+        }
+        default -> {
           groupAreaRadioGroup.setValue(getTranslation("local"));
           formsLayout.add(groupAreaRadioGroup);
+        }
       }
 
       if (adGroup.getGroupType() == Global.ADGroupType.DISTRIBUTION) {

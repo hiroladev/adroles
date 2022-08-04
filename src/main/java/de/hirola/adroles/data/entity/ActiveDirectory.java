@@ -4,7 +4,6 @@ import de.hirola.adroles.data.AbstractEntity;
 
 import javax.persistence.Entity;
 import javax.validation.constraints.NotEmpty;
-import java.util.Objects;
 
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
@@ -27,16 +26,17 @@ public class ActiveDirectory extends AbstractEntity {
     private String connectionUserName;
     @NotEmpty
     private String connectionPassword;
+    private boolean isReadOnly;
 
     public String getDomainName() {
-        return Objects.requireNonNullElse(domainName, "");
+        return domainName;
     }
     public void setDomainName(String domainName) {
         this.domainName = domainName;
     }
 
     public String getIPAddress() {
-        return Objects.requireNonNullElse(ipAddress, "");
+        return ipAddress;
     }
 
     public void setIPAddress(String ipAddress) {
@@ -60,7 +60,7 @@ public class ActiveDirectory extends AbstractEntity {
     }
 
     public String getConnectionUserName() {
-        return Objects.requireNonNullElse(connectionUserName, "");
+        return connectionUserName;
     }
 
     /**
@@ -78,11 +78,18 @@ public class ActiveDirectory extends AbstractEntity {
     }
 
     public String getEncryptedConnectionPassword() {
-        return Objects.requireNonNullElse(connectionPassword, "");
+        return connectionPassword;
     }
 
     public void setEncryptedConnectionPassword(String password) {
         connectionPassword = password;
     }
 
+    public boolean isReadOnly() {
+        return isReadOnly;
+    }
+
+    public void setReadOnly(boolean readOnly) {
+        isReadOnly = readOnly;
+    }
 }

@@ -8,7 +8,8 @@ import java.util.Optional;
 
 public interface RoleResourceRepository extends JpaRepository<RoleResource, Integer> {
     @Query("select r from RoleResource r " +
-            "where r.isOrgResource = false and r.isProjectResource = false and r.isFileShareResource = false")
+            "where r.isOrgResource = false " +
+            "and r.isProjectResource = false and r.isFileShareResource = false and r.isEmailResource = false")
     Optional<RoleResource> getDefaultResource();
 
     @Query("select r from RoleResource r where r.isOrgResource = true")
@@ -19,4 +20,7 @@ public interface RoleResourceRepository extends JpaRepository<RoleResource, Inte
 
     @Query("select r from RoleResource r where r.isFileShareResource = true")
     Optional<RoleResource> getFileShareResource();
+
+    @Query("select r from RoleResource r where r.isEmailResource = true")
+    Optional<RoleResource> getEmailResource();
 }

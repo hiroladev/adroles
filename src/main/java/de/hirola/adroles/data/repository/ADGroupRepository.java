@@ -17,10 +17,10 @@ public interface ADGroupRepository extends JpaRepository<ADGroup, Integer> {
             "order by g.name")
     List<ADGroup> search(@Param("searchTerm") String searchTerm);
 
-    Optional<ADGroup> findByDistinguishedName(String distinguishedName);
+    Optional<ADGroup> findFirstByObjectSID(String objectSID);
+
+    Optional<ADGroup> findFirstByName(String name);
 
     long countByIsAdminGroupTrue();
-
-
 
 }

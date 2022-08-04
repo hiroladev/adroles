@@ -6,7 +6,6 @@ import de.hirola.adroles.data.AbstractEntity;
 import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -24,7 +23,7 @@ import java.util.Set;
  */
 
 @Entity
-public class Person extends AbstractEntity {
+public class Person extends AbstractEntity implements Comparable<Person> {
     private String centralAccountName; // used the first logon name
     @NotEmpty
     private String lastName;
@@ -203,4 +202,10 @@ public class Person extends AbstractEntity {
     public int hashCode() {
         return Objects.hash(super.hashCode(), centralAccountName, lastName, firstName);
     }
+
+    @Override
+    public int compareTo(Person o) {
+        return lastName.compareTo(o.getLastName());
+    }
+
 }

@@ -41,7 +41,6 @@ public class RoleAssignPersonForm extends VerticalLayout {
   private TextField roleTexField, searchField;
   private Button assignAutomaticallyButton;
   private final Grid<Person> grid = new Grid<>(Person.class, false);
-
   private GridListDataView<Person> dataView;
   public RoleAssignPersonForm(IdentityService identityService) {
     this.identityService = identityService;
@@ -176,13 +175,6 @@ public class RoleAssignPersonForm extends VerticalLayout {
     }
   }
 
-  private boolean matchesTerm(String value, String searchTerm) {
-    if (value == null ||searchTerm == null) {
-      return false;
-    }
-    return value.toLowerCase().contains(searchTerm.toLowerCase());
-  }
-
   private void assignFromPersons() {
     RoleResource roleResource = role.getRoleResource();
     if (roleResource != null) {
@@ -202,6 +194,13 @@ public class RoleAssignPersonForm extends VerticalLayout {
       role.setPersons(selectedPersons);
     }
     fireEvent(new SaveEvent(this, role));
+  }
+
+  private boolean matchesTerm(String value, String searchTerm) {
+    if (value == null ||searchTerm == null) {
+      return false;
+    }
+    return value.toLowerCase().contains(searchTerm.toLowerCase());
   }
 
   // Events

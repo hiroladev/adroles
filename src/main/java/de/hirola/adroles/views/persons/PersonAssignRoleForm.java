@@ -4,23 +4,34 @@ import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.grid.dataview.GridListDataView;
+import com.vaadin.flow.component.icon.Icon;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.provider.QuerySortOrder;
+import com.vaadin.flow.data.provider.SortDirection;
+import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.function.ValueProvider;
 import com.vaadin.flow.shared.Registration;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Person;
 import de.hirola.adroles.data.entity.Role;
+import de.hirola.adroles.data.entity.RoleResource;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public class PersonAssignRoleForm extends VerticalLayout {
   private Person person;
   private final Set<Role> selectedRoles = new LinkedHashSet<>();
-  private TextField personTexField;
+  private TextField personTexField, searchField;
   private final Grid<Role> grid = new Grid<>(Role.class, false);
+  private GridListDataView<Role> dataView;
 
   public PersonAssignRoleForm() {
     addClassName("person-assign-role-form");
@@ -34,8 +45,34 @@ public class PersonAssignRoleForm extends VerticalLayout {
     personTexField.setReadOnly(true);
     add(personTexField);
 
+    searchField = new TextField();
+    searchField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+    searchField.setPlaceholder(getTranslation("search"));
+    searchField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
+    searchField.setValueChangeMode(ValueChangeMode.EAGER);
+    searchField.addValueChangeListener(event -> {
+      if (dataView != null) {
+        dataView.refreshAll();
+      }
+    });
+    add(searchField);
+
     grid.addClassNames("role-grid");
     grid.setSizeFull();
+    grid.addColumn(role -> selectedRoles.contains(role) ? getTranslation("assigned") : getTranslation("notAssigned"), "status")
+            .setHeader(getTranslation("status"))
+            .setKey(Global.Component.FOOTER_COLUMN_KEY)
+            .setSortOrderProvider(direction -> Stream.of(new QuerySortOrder("status", direction)))
+            .setComparator((role1, role2) -> {
+              if ((selectedRoles.contains(role1) && selectedRoles.contains(role2)) ||
+                      (!selectedRoles.contains(role1) && !selectedRoles.contains(role2)) ) {
+                return 0;
+              }
+              if (selectedRoles.contains(role1) && !selectedRoles.contains(role2)) {
+                return 1;
+              }
+              return -1;
+            });
     grid.addColumn(Role::getName).setHeader(getTranslation("name"))
             .setSortable(true);
     grid.addColumn(Role::getDescription).setHeader(getTranslation("description"))
@@ -69,9 +106,16 @@ public class PersonAssignRoleForm extends VerticalLayout {
     add(buttonsLayout);
   }
 
-  public void setData(Person person, List<Role> roles) {
+  public void setData(Person person, List<Role> roles, RoleResource roleResource) {
     this.person = person;
-    if (person != null && roles != null) {
+    if (person != null && roles != null & roleResource != null) {
+      // filter the role list by role resource
+      List<Role> filteredRoles = new ArrayList<>();
+      if (roleResource.isOrgResource()) {
+        filteredRoles.addAll(roles.stream().filter(role -> role.getRoleResource().isOrgResource()).toList());
+      } else {
+        filteredRoles.addAll(roles.stream().filter(role -> !role.getRoleResource().isOrgResource()).toList());
+      }
       // build person info string
       StringBuilder personInfos = new StringBuilder(person.getLastName());
       if (person.getFirstName().length() > 0) {
@@ -84,12 +128,41 @@ public class PersonAssignRoleForm extends VerticalLayout {
         personInfos.append(")");
       }
       personTexField.setValue(personInfos.toString());
-      // set all available roles
-      grid.setItems(roles);
-      // add assigned roles to selected list
+
+      // you can filter the grid
+      dataView = grid.setItems(filteredRoles);
+      dataView.addFilter(role -> {
+        String searchTerm = searchField.getValue().trim();
+        if (searchTerm.isEmpty()) {
+          return true;
+        }
+        boolean matchesName = matchesTerm(role.getName(), searchTerm);
+        boolean matchesDescription = matchesTerm(role.getDescription(), searchTerm);
+
+        return matchesName || matchesDescription;
+      });
+
+      // show first assigned persons
+      dataView.setSortOrder((ValueProvider<Role, String>) role -> {
+        if (role == null) {
+          return "";
+        }
+        if (selectedRoles.contains(role)) {
+          return getTranslation("assigned");
+        }
+        return getTranslation("notAssigned");
+      }, SortDirection.DESCENDING);
+
+      // add assigned roles to selected list - filtered by role resource
       selectedRoles.clear();
-      selectedRoles.addAll(person.getRoles());
+      if (roleResource.isOrgResource()) {
+        selectedRoles.addAll(person.getRoles().stream().filter(role -> role.getRoleResource().isOrgResource()).toList());
+      } else {
+        selectedRoles.addAll(person.getRoles().stream().filter(role -> !role.getRoleResource().isOrgResource()).toList());
+      }
       grid.asMultiSelect().select(selectedRoles);
+      grid.getColumnByKey(Global.Component.FOOTER_COLUMN_KEY)
+              .setFooter(String.format(getTranslation("roles.assigned") + ": %s", selectedRoles.size()));
     }
   }
   private void validateAndSave() {
@@ -102,6 +175,13 @@ public class PersonAssignRoleForm extends VerticalLayout {
       }
     }
     fireEvent(new SaveEvent(this, person));
+  }
+
+  private boolean matchesTerm(String value, String searchTerm) {
+    if (value == null ||searchTerm == null) {
+      return false;
+    }
+    return value.toLowerCase().contains(searchTerm.toLowerCase());
   }
 
   // Events
@@ -126,7 +206,7 @@ public class PersonAssignRoleForm extends VerticalLayout {
 
   public static class CloseEvent extends PersonAssignRoleFormEvent {
     CloseEvent(PersonAssignRoleForm source) {
-      super(source, null);
+      super(source, source.person);
     }
   }
 

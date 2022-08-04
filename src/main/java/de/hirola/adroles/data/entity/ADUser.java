@@ -22,11 +22,13 @@ import java.util.Set;
  */
 
 @Entity
-public class ADUser extends AbstractEntity {
+public class ADUser extends AbstractEntity implements Comparable<ADUser> {
     @NotEmpty
     private String logonName;
     @NotEmpty
     private String distinguishedName;
+    @NotEmpty
+    private String objectSID; // SID does never change
     private boolean enabled;
     private boolean passwordExpires;
 
@@ -42,7 +44,7 @@ public class ADUser extends AbstractEntity {
     private Set<Role> roles = new LinkedHashSet<>();
 
     public String getLogonName() {
-        return Objects.requireNonNullElse(logonName, "");
+        return logonName;
     }
 
     public void setLogonName(String logonName) {
@@ -50,11 +52,19 @@ public class ADUser extends AbstractEntity {
     }
 
     public String getDistinguishedName() {
-        return Objects.requireNonNullElse(distinguishedName, "");
+        return distinguishedName;
     }
 
     public void setDistinguishedName(String distinguishedName) {
         this.distinguishedName = distinguishedName;
+    }
+
+    public String getObjectSID() {
+        return objectSID;
+    }
+
+    public void setObjectSID(String objectSID) {
+        this.objectSID = objectSID;
     }
 
     public Person getPerson() {
@@ -145,6 +155,11 @@ public class ADUser extends AbstractEntity {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), logonName, distinguishedName);
+    }
+
+    @Override
+    public int compareTo(ADUser o) {
+        return logonName.compareTo(o.getLogonName());
     }
 }
 

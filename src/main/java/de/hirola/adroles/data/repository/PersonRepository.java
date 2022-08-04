@@ -17,7 +17,8 @@ public interface PersonRepository extends JpaRepository<Person, Integer> {
             "or lower(p.departmentName) like lower(concat('%', :searchTerm, '%'))" +
             "or lower(p.description) like lower(concat('%', :searchTerm, '%'))" +
             "or lower(p.emailAddress) like lower(concat('%', :searchTerm, '%'))" +
-            "or lower(p.centralAccountName) like lower(concat('%', :searchTerm, '%'))")
+            "or lower(p.centralAccountName) like lower(concat('%', :searchTerm, '%')) " +
+            "order by p.lastName")
     List<Person> search(@Param("searchTerm") String searchTerm);
 
     @Query("select p from Person p " +
@@ -27,7 +28,8 @@ public interface PersonRepository extends JpaRepository<Person, Integer> {
             "or lower(p.departmentName) like lower(concat('%', :searchTerm, '%'))" +
             "or lower(p.description) like lower(concat('%', :searchTerm, '%'))" +
             "or lower(p.emailAddress) like lower(concat('%', :searchTerm, '%'))" +
-            "or lower(p.centralAccountName) like lower(concat('%', :searchTerm, '%')))")
+            "or lower(p.centralAccountName) like lower(concat('%', :searchTerm, '%'))) " +
+            "order by p.lastName")
     List<Person> searchEmployees(@Param("searchTerm") String searchTerm);
 
     Optional<Person> findByAdUsers_LogonName(@NonNull String logonName);

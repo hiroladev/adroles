@@ -60,7 +60,7 @@ public class SimpleI18NProvider implements I18NProvider {
             return MessageFormat.format(rawString, params);
         } catch (final MissingResourceException exception) {
             // Translation not found, return error message instead of null as per API
-            logger.debug("Missing key in translate resources: " + key, exception);
+            logger.debug("Missing key in translate resources: " + key);
             return String.format("!{%s}", key);
         } catch (final IllegalArgumentException exception) {
             logger.debug("Translation exception occurred.", exception);

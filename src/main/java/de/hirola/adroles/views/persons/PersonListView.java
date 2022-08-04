@@ -35,16 +35,15 @@ public class PersonListView extends VerticalLayout {
     private PersonAssignRoleForm assignRoleForm;
     private final Grid<Person> grid = new Grid<>(Person.class, false);
     private TextField filterTextField;
-    private Button addPersonButton, importButton, deletePersonsButton;
+    private Button addPersonButton, updateButton, assignToRolesButton, deletePersonsButton;
 
     public PersonListView(IdentityService identityService) {
         this.identityService = identityService;
         addClassName("persons-list-view");
         setSizeFull();
         addComponents();
+        enableComponents(true);
         updateList();
-        closePersonForm();
-        closeAssignRolesForm();
     }
 
     private void addComponents() {
@@ -68,12 +67,18 @@ public class PersonListView extends VerticalLayout {
         deletePersonsButton.addClickListener(click -> deletePersons());
 
         //TODO: enable / disable import by config
-        importButton = new Button(getTranslation("importFromActiveDirectory"));
-        importButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        importButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
-        importButton.addClickListener(click -> importPersons());
+        updateButton = new Button(getTranslation("updateFromActiveDirectory"));
+        updateButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        updateButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        updateButton.addClickListener(click -> importPersons());
 
-        HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addPersonButton, deletePersonsButton, importButton);
+        assignToRolesButton = new Button(getTranslation("assignAutomatically"));
+        assignToRolesButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        assignToRolesButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        assignToRolesButton.addClickListener(click -> assignRoles());
+
+        HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addPersonButton, deletePersonsButton,
+                updateButton, assignToRolesButton);
         toolbar.addClassName("toolbar");
 
         grid.addClassNames("person-grid");
@@ -101,9 +106,11 @@ public class PersonListView extends VerticalLayout {
             selectedPersons.clear();
             if (selection.getAllSelectedItems().size() == 0) {
                 deletePersonsButton.setEnabled(false);
+                assignToRolesButton.setEnabled(false);
             } else {
-                deletePersonsButton.setEnabled(true);
                 selectedPersons.addAll(selection.getAllSelectedItems());
+                deletePersonsButton.setEnabled(true);
+                assignToRolesButton.setEnabled(true);
             }
         });
 
@@ -111,13 +118,17 @@ public class PersonListView extends VerticalLayout {
         personForm.setWidthFull();
         personForm.addListener(PersonForm.SaveEvent.class, this::savePerson);
         personForm.addListener(PersonForm.AssignRolesEvent.class, this::addRoles);
+        personForm.addListener(PersonForm.AssignOrgEvent.class, this::addOrgRoles);
         personForm.addListener(PersonForm.DeleteEvent.class, this::deletePerson);
+        personForm.addListener(PersonAssignRoleForm.CloseEvent.class, this::closeAssignRolesForm);
         personForm.addListener(PersonForm.CloseEvent.class, event -> closePersonForm());
+        personForm.setVisible(false);
 
         assignRoleForm = new PersonAssignRoleForm();
         assignRoleForm.setWidthFull();
         assignRoleForm.addListener(PersonAssignRoleForm.SaveEvent.class, this::saveAssignedRoles);
-        assignRoleForm.addListener(PersonAssignRoleForm.CloseEvent.class, event -> closeAssignRolesForm());
+        assignRoleForm.addListener(PersonAssignRoleForm.CloseEvent.class, this::closeAssignRolesForm);
+        assignRoleForm.setVisible(false);
 
         // context menu to change the role resource of selected roles
         PersonContextMenu contextMenu = new PersonContextMenu(grid, this);
@@ -134,17 +145,18 @@ public class PersonListView extends VerticalLayout {
 
     private void importPersons() {
         Dialog dialog = new Dialog();
+        dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
         if (identityService.countPersons() > 0) {
             // data can be override
             dialog.setHeaderTitle(getTranslation("question.updateData"));
 
             TextArea messageArea = new TextArea();
             messageArea.setWidthFull();
-            messageArea.setValue(getTranslation("persons.importFromActiveDirectory.dialog.message"));
+            messageArea.setValue(getTranslation("updatePersonsFromActiveDirectory.dialog.message"));
 
             Button okButton = new Button("Ok", clickEvent -> {
                 dialog.close();
-                if (!identityService.importPersonsFromAD()) {
+                if (!identityService.updatePersonsFromAD()) {
                     NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
                 }
                 updateList();
@@ -162,10 +174,40 @@ public class PersonListView extends VerticalLayout {
             dialog.open();
         } else {
             dialog.close();
-            if (!identityService.importPersonsFromAD()) {
+            if (!identityService.updatePersonsFromAD()) {
                 NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
             }
             updateList();
+        }
+    }
+
+    private void assignRoles() {
+        Dialog dialog = new Dialog();
+        dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
+        if (selectedPersons.size() > 0) {
+            // data can be override
+            dialog.setHeaderTitle(getTranslation("question.updateData"));
+            TextArea messageArea = new TextArea();
+            messageArea.setWidthFull();
+            messageArea.setValue(getTranslation("assignPersonsToRoles.dialog.message"));
+
+            Button okButton = new Button("Ok", clickEvent -> {
+                dialog.close();
+                if (!identityService.assignPersonsToRoles(selectedPersons)) {
+                    NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.assign"));
+                }
+                updateList();
+            });
+            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+            okButton.getStyle().set("margin-right", "auto");
+
+            Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
+            cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+            dialog.add(messageArea);
+            dialog.getFooter().add(okButton);
+            dialog.getFooter().add(cancelButton);
+            dialog.open();
         }
     }
 
@@ -237,7 +279,17 @@ public class PersonListView extends VerticalLayout {
         closePersonForm();
         enableComponents(false);
         assignRoleForm.setVisible(true);
-        assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null, null));
+        assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null, null),
+                identityService.getRoleResource(Global.ROLE_RESOURCE.DEFAULT_ROLE));
+        addClassName("editing");
+    }
+
+    private void addOrgRoles(PersonForm.AssignOrgEvent event) {
+        closePersonForm();
+        enableComponents(false);
+        assignRoleForm.setVisible(true);
+        assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null, null),
+                identityService.getRoleResource(Global.ROLE_RESOURCE.ORG_ROLE));
         addClassName("editing");
     }
 
@@ -249,6 +301,7 @@ public class PersonListView extends VerticalLayout {
     private void updateList() {
         List<Person> filteredPersons = identityService.findAllPersons(filterTextField.getValue());
         grid.setItems(filteredPersons);
+        grid.deselectAll();
         grid.getColumnByKey(Global.Component.FOOTER_COLUMN_KEY)
                 .setFooter(String.format(getTranslation("persons.sum") + ": %s", filteredPersons.size()));
     }
@@ -260,9 +313,11 @@ public class PersonListView extends VerticalLayout {
         removeClassName("editing");
     }
 
-    private void closeAssignRolesForm() {
-        assignRoleForm.setData(null, null);
+    private void closeAssignRolesForm(PersonAssignRoleForm.CloseEvent event) {
+        assignRoleForm.setData(null, null, null);
         assignRoleForm.setVisible(false);
+        personForm.setPerson(event.getPerson());
+        personForm.setVisible(true);
         enableComponents(true);
         removeClassName("editing");
     }
@@ -274,15 +329,18 @@ public class PersonListView extends VerticalLayout {
     private void enableComponents(boolean enabled) {
         filterTextField.setEnabled(enabled);
         addPersonButton.setEnabled(enabled);
-        if (selectedPersons.size() == 0) {
-            deletePersonsButton.setEnabled(false);
-        } else {
-            deletePersonsButton.setEnabled(enabled);
-        }
-        if (!identityService.isConnected()) {
-            importButton.setEnabled(false);
-        } else {
-            importButton.setEnabled(enabled);
+        deletePersonsButton.setEnabled(enabled);
+        updateButton.setEnabled(enabled);
+        assignToRolesButton.setEnabled(enabled);
+
+        if (enabled) {
+            if (selectedPersons.size() == 0) {
+                deletePersonsButton.setEnabled(false);
+                assignToRolesButton.setEnabled(false);
+            }
+            if (!identityService.isConnected()) {
+                updateButton.setEnabled(false);
+            }
         }
     }
 

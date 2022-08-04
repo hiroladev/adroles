@@ -17,7 +17,7 @@ import com.vaadin.flow.router.RouterLink;
 import de.hirola.adroles.views.adgroups.ADGroupListView;
 import de.hirola.adroles.views.adusers.ADUserListView;
 import de.hirola.adroles.views.employees.EmployeeListView;
-import de.hirola.adroles.views.resources.DistributionListRoleListView;
+import de.hirola.adroles.views.resources.MailResourceRoleListView;
 import de.hirola.adroles.views.resources.FileShareRoleListView;
 import de.hirola.adroles.views.resources.OrgRoleListView;
 import de.hirola.adroles.views.persons.PersonListView;
@@ -65,7 +65,7 @@ public class MainLayout extends AppLayout {
                 createTab(VaadinIcon.OFFICE, OrgRoleListView.class, getTranslation("organizations")),
                 createTab(VaadinIcon.CALENDAR_BRIEFCASE, ProjectRoleListView.class, getTranslation("projects")),
                 createTab(VaadinIcon.FOLDER, FileShareRoleListView.class, getTranslation("fileShares")),
-                createTab(VaadinIcon.FOLDER, DistributionListRoleListView.class, getTranslation("distributionLists")),
+                createTab(VaadinIcon.MAILBOX, MailResourceRoleListView.class, getTranslation("emailResources")),
                 createTab(VaadinIcon.CONNECT, RolesListView.class, getTranslation("roles")),
                 createTab(VaadinIcon.USER_STAR, ADUserListView.class, getTranslation("aduser")),
                 createTab(VaadinIcon.GROUP, ADGroupListView.class, getTranslation("adgroup")),

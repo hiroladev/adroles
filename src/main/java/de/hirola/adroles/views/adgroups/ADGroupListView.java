@@ -36,7 +36,7 @@ public class ADGroupListView extends VerticalLayout {
     private PersonAssignRoleForm assignRoleForm;
     private final Grid<ADGroup> grid = new Grid<>(ADGroup.class, false);
     private TextField filterTextField;
-    private Button addADGroupButton, importButton, deleteADGroupsButton;
+    private Button addADGroupButton, updateButton, deleteADGroupsButton;
 
     public ADGroupListView(IdentityService identityService) {
         this.identityService = identityService;
@@ -58,7 +58,7 @@ public class ADGroupListView extends VerticalLayout {
 
         addADGroupButton = new Button(new Icon(VaadinIcon.PLUS));
         addADGroupButton.addThemeVariants(ButtonVariant.LUMO_ICON);
-        addADGroupButton.getElement().setAttribute("aria-label", getTranslation("adGroup"));
+        addADGroupButton.getElement().setAttribute("aria-label", getTranslation("addADGroup"));
         addADGroupButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
         addADGroupButton.addClickListener(click -> addADgroup());
 
@@ -69,12 +69,12 @@ public class ADGroupListView extends VerticalLayout {
         deleteADGroupsButton.addClickListener(click -> deleteADGroups());
 
         //TODO: enable / disable import by config
-        importButton = new Button(getTranslation("importFromActiveDirectory"));
-        importButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        importButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
-        importButton.addClickListener(click -> importADGroups());
+        updateButton = new Button(getTranslation("updateFromActiveDirectory"));
+        updateButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        updateButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        updateButton.addClickListener(click -> importADGroups());
 
-        HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addADGroupButton, deleteADGroupsButton, importButton);
+        HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addADGroupButton, deleteADGroupsButton, updateButton);
         toolbar.addClassName("toolbar");
 
         grid.addClassNames("ad-group-grid");
@@ -124,6 +124,7 @@ public class ADGroupListView extends VerticalLayout {
 
     private void importADGroups() {
         Dialog dialog = new Dialog();
+        dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
         if (identityService.countADGroups() > 0) {
             // data can be override
             dialog.setHeaderTitle(getTranslation("question.updateData"));
@@ -134,17 +135,10 @@ public class ADGroupListView extends VerticalLayout {
 
             Button okButton = new Button("Ok", clickEvent -> {
                 dialog.close();
-                if (!identityService.importGroupsFromAD()) {
+                if (!identityService.updateGroupsFromAD()) {
                     NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
                 }
                 updateList();
-            });
-            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-            okButton.getStyle().set("margin-right", "auto");
-
-            Button partiallyButton = new Button(getTranslation("question.missing"), clickEvent -> {
-                dialog.close();
-                NotificationPopUp.show(NotificationPopUp.INFO, getTranslation("not.implemented"));
             });
             okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
             okButton.getStyle().set("margin-right", "auto");
@@ -154,13 +148,12 @@ public class ADGroupListView extends VerticalLayout {
 
             dialog.add(messageArea);
             dialog.getFooter().add(okButton);
-            dialog.getFooter().add(partiallyButton);
             dialog.getFooter().add(cancelButton);
 
             dialog.open();
         } else {
             dialog.close();
-            if (!identityService.importGroupsFromAD()) {
+            if (!identityService.updateGroupsFromAD()) {
                 NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
             }
             updateList();
@@ -225,7 +218,7 @@ public class ADGroupListView extends VerticalLayout {
         closeADGroupForm();
         enableComponents(false);
         assignRoleForm.setVisible(true);
-        assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null, null));
+        assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null, null), null);
         addClassName("editing");
     }
 
@@ -237,6 +230,7 @@ public class ADGroupListView extends VerticalLayout {
     private void updateList() {
         List<ADGroup> filteredADGroups = identityService.findAllADGroups(filterTextField.getValue());
         grid.setItems(filteredADGroups);
+        grid.deselectAll();
         grid.getColumnByKey(Global.Component.FOOTER_COLUMN_KEY)
                 .setFooter(String.format(getTranslation("adGroups.sum") + ": %s", filteredADGroups.size()));
     }
@@ -249,7 +243,7 @@ public class ADGroupListView extends VerticalLayout {
     }
 
     private void closeAssignRolesForm() {
-        assignRoleForm.setData(null, null);
+        assignRoleForm.setData(null, null, null);
         assignRoleForm.setVisible(false);
         enableComponents(true);
         removeClassName("editing");
@@ -264,9 +258,9 @@ public class ADGroupListView extends VerticalLayout {
             deleteADGroupsButton.setEnabled(enabled);
         }
         if (!identityService.isConnected()) {
-            importButton.setEnabled(false);
+            updateButton.setEnabled(false);
         } else {
-            importButton.setEnabled(enabled);
+            updateButton.setEnabled(enabled);
         }
     }
 

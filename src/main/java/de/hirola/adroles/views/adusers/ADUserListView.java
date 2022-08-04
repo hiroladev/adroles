@@ -36,7 +36,7 @@ public class ADUserListView extends VerticalLayout {
     private PersonAssignRoleForm assignRoleForm;
     private final Grid<ADUser> grid = new Grid<>(ADUser.class, false);
     private TextField filterTextField;
-    private Button addADUserButton, importButton, deleteADUsersButton;
+    private Button addADUserButton, updateButton, deleteADUsersButton;
 
     public ADUserListView(IdentityService identityService) {
         this.identityService = identityService;
@@ -69,12 +69,12 @@ public class ADUserListView extends VerticalLayout {
         deleteADUsersButton.addClickListener(click -> deleteADUsers());
 
         //TODO: enable / disable import by config
-        importButton = new Button(getTranslation("importFromActiveDirectory"));
-        importButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        importButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
-        importButton.addClickListener(click -> importADUsers());
+        updateButton = new Button(getTranslation("updateFromActiveDirectory"));
+        updateButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        updateButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+        updateButton.addClickListener(click -> importADUsers());
 
-        HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addADUserButton, deleteADUsersButton, importButton);
+        HorizontalLayout toolbar = new HorizontalLayout(filterTextField, addADUserButton, deleteADUsersButton, updateButton);
         toolbar.addClassName("toolbar");
 
         grid.addClassNames("ad-user-grid");
@@ -143,17 +143,18 @@ public class ADUserListView extends VerticalLayout {
 
     private void importADUsers() {
         Dialog dialog = new Dialog();
+        dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
         if (identityService.countPersons() > 0) {
             // data can be override
             dialog.setHeaderTitle(getTranslation("question.updateData"));
 
             TextArea messageArea = new TextArea();
             messageArea.setWidthFull();
-            messageArea.setValue(getTranslation("adUser.importFromActiveDirectory.dialog.message"));
+            messageArea.setValue(getTranslation("updateADUsersFromActiveDirectory.dialog.message"));
 
             Button okButton = new Button("Ok", clickEvent -> {
                 dialog.close();
-                if (!identityService.importUserFromAD()) {
+                if (!identityService.updateUserFromAD()) {
                     NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
                 }
                 updateList();
@@ -171,7 +172,7 @@ public class ADUserListView extends VerticalLayout {
             dialog.open();
         } else {
             dialog.close();
-            if (!identityService.importPersonsFromAD()) {
+            if (!identityService.updatePersonsFromAD()) {
                 NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
             }
             updateList();
@@ -236,7 +237,7 @@ public class ADUserListView extends VerticalLayout {
         closeADUserForm();
         enableComponents(false);
         assignRoleForm.setVisible(true);
-        assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null, null));
+        assignRoleForm.setData(event.getPerson(), identityService.findAllRoles(null, null), null);
         addClassName("editing");
     }
 
@@ -248,6 +249,7 @@ public class ADUserListView extends VerticalLayout {
     private void updateList() {
         List<ADUser> filteredADUsers = identityService.findAllADUsers(filterTextField.getValue());
         grid.setItems(filteredADUsers);
+        grid.deselectAll();
         grid.getColumnByKey(Global.Component.FOOTER_COLUMN_KEY)
                 .setFooter(String.format(getTranslation("adUsers.sum") + ": %s", filteredADUsers.size()));
     }
@@ -260,7 +262,7 @@ public class ADUserListView extends VerticalLayout {
     }
 
     private void closeAssignRolesForm() {
-        assignRoleForm.setData(null, null);
+        assignRoleForm.setData(null, null, null);
         assignRoleForm.setVisible(false);
         enableComponents(true);
         removeClassName("editing");
@@ -275,9 +277,9 @@ public class ADUserListView extends VerticalLayout {
             deleteADUsersButton.setEnabled(enabled);
         }
         if (!identityService.isConnected()) {
-            importButton.setEnabled(false);
+            updateButton.setEnabled(false);
         } else {
-            importButton.setEnabled(enabled);
+            updateButton.setEnabled(enabled);
         }
     }
 

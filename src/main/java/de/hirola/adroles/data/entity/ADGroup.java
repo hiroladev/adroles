@@ -21,20 +21,22 @@ import java.util.*;
  */
 
 @Entity
-public class ADGroup extends AbstractEntity {
+public class ADGroup extends AbstractEntity implements Comparable<ADGroup> {
     @NotBlank
     private String name;
     @NotEmpty
     private String distinguishedName;
+    @NotEmpty
+    private String objectSID;  // SID does never change
     private String description;
     private int groupArea; // local, global, universal ==> Global.ADGroupArea
     private int groupType; // security, distribution ==> Global.ADGroupType
     private boolean isAdminGroup;
-    @ManyToMany(mappedBy = "adGroups", cascade = CascadeType.PERSIST, fetch= FetchType.EAGER)
+    @ManyToMany(mappedBy = "adGroups", cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
     private Set<Role> roles = new LinkedHashSet<>();
 
     public String getName() {
-        return Objects.requireNonNullElse(name, "");
+        return name;
     }
 
     public void setName(String name) {
@@ -42,11 +44,19 @@ public class ADGroup extends AbstractEntity {
     }
 
     public String getDistinguishedName() {
-        return Objects.requireNonNullElse(distinguishedName, "");
+        return distinguishedName;
     }
 
     public void setDistinguishedName(String distinguishedName) {
        this.distinguishedName = distinguishedName;
+    }
+
+    public String getObjectSID() {
+        return objectSID;
+    }
+
+    public void setObjectSID(String objectSID) {
+        this.objectSID = objectSID;
     }
 
     public String getDescription() {
@@ -123,6 +133,11 @@ public class ADGroup extends AbstractEntity {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), name, distinguishedName, groupArea);
+    }
+
+    @Override
+    public int compareTo(ADGroup o) {
+        return name.compareTo(o.getName());
     }
 }
 

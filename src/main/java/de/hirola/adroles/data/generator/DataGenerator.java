@@ -21,7 +21,7 @@ public class DataGenerator {
 
             logger.info("... generating 1 user entity for login ...");
             User user = new User();
-            user.setLoginName("user");
+            user.setLoginName("schmid02");
             user.setPassword(new BCryptPasswordEncoder().encode("userpass"));
             user.setEnabled(true);
             userRepository.save(user);

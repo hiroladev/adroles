@@ -21,12 +21,16 @@ import de.hirola.adroles.data.repository.*;
 import org.apache.directory.api.util.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
 import java.net.ConnectException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -38,8 +42,10 @@ import java.util.regex.Pattern;
 @Service
 public class IdentityService {
     private final Logger logger = LoggerFactory.getLogger(IdentityService.class);
+    private org.springframework.security.core.userdetails.User sessionUser;
+    private Endpoint endpoint;
+    private boolean isConnected;
     private ActiveDirectory activeDirectory;
-    private boolean isConnected = false;
     private final ActiveDirectoryRepository activeDirectoryRepository;
     private  final PersonRepository personRepository;
     private  final RoleRepository roleRepository;
@@ -63,7 +69,7 @@ public class IdentityService {
         // we manage only one AD
         if (activeDirectoryRepository.count() == 1) {
             activeDirectory = activeDirectoryRepository.findAll().get(0);
-            isConnected = connect();
+            connect();
         } else {
             activeDirectory = new ActiveDirectory();
         }
@@ -71,7 +77,7 @@ public class IdentityService {
 
     public @Nullable RoleResource getRoleResource(int type) {
         switch (type) {
-            case Global.ROLE_RESOURCE.ORG_ROLE:
+            case Global.ROLE_RESOURCE.ORG_ROLE -> {
                 Optional<RoleResource> optionalOrgResource = roleResourceRepository.getOrgResource();
                 if (optionalOrgResource.isPresent()) {
                     return optionalOrgResource.get();
@@ -90,9 +96,10 @@ public class IdentityService {
                     return orgRoleResource;
                 } catch (Exception exception) {
                     logger.debug("Error while creating resource for orgs.", exception);
-                    return  null;
+                    return null;
                 }
-            case Global.ROLE_RESOURCE.PROJECT_ROLE:
+            }
+            case Global.ROLE_RESOURCE.PROJECT_ROLE -> {
                 Optional<RoleResource> optionalProjectResource = roleResourceRepository.getProjResource();
                 if (optionalProjectResource.isPresent()) {
                     return optionalProjectResource.get();
@@ -111,14 +118,15 @@ public class IdentityService {
                     return projRoleResource;
                 } catch (Exception exception) {
                     logger.debug("Error while creating resource for projects.", exception);
-                    return  null;
+                    return null;
                 }
-            case Global.ROLE_RESOURCE.FILE_SHARE_ROLE:
+            }
+            case Global.ROLE_RESOURCE.FILE_SHARE_ROLE -> {
                 Optional<RoleResource> optionalShareResource = roleResourceRepository.getFileShareResource();
                 if (optionalShareResource.isPresent()) {
                     return optionalShareResource.get();
                 }
-                // create resource for org units
+                // create resource for file shares
                 RoleResource shareRoleResource = new RoleResource();
                 shareRoleResource.setName(UI.getCurrent().getTranslation("fileShare"));
                 shareRoleResource.setDescription(UI.getCurrent().getTranslation("fileShare"));
@@ -132,9 +140,32 @@ public class IdentityService {
                     return shareRoleResource;
                 } catch (Exception exception) {
                     logger.debug("Error while creating resource for file shares.", exception);
-                    return  null;
+                    return null;
                 }
-            default :
+            }
+            case Global.ROLE_RESOURCE.EMAIL_RESOURCE_ROLE -> {
+                Optional<RoleResource> optionalEmailResource = roleResourceRepository.getEmailResource();
+                if (optionalEmailResource.isPresent()) {
+                    return optionalEmailResource.get();
+                }
+                // create resource for email resources
+                RoleResource emailRoleResource = new RoleResource();
+                emailRoleResource.setName(UI.getCurrent().getTranslation("emailResource"));
+                emailRoleResource.setDescription(UI.getCurrent().getTranslation("emailResource"));
+                emailRoleResource.setViewClassName("email-view");
+                emailRoleResource.setAddResourceTranslationKey("addEmailRole");
+                emailRoleResource.setDeleteResourcesTranslationKey("deleteEmailRoles");
+                emailRoleResource.setEmailResource(true);
+                try {
+                    roleResourceRepository.save(emailRoleResource);
+                    logger.debug("Role resource for file shares created.");
+                    return emailRoleResource;
+                } catch (Exception exception) {
+                    logger.debug("Error while creating resource for e-mail.", exception);
+                    return null;
+                }
+            }
+            default -> {
                 Optional<RoleResource> optionalResource = roleResourceRepository.getDefaultResource();
                 if (optionalResource.isPresent()) {
                     return optionalResource.get();
@@ -153,8 +184,9 @@ public class IdentityService {
                     return defaultRoleResource;
                 } catch (Exception exception) {
                     logger.debug("Error while creating default resource for roles.", exception);
-                    return  null;
+                    return null;
                 }
+            }
         }
     }
 
@@ -182,7 +214,6 @@ public class IdentityService {
 
     public void verifyConnection(@NotNull ActiveDirectory activeDirectory)
             throws ConnectException {
-        final Endpoint endpoint = new Endpoint();
         endpoint.setSecuredConnection(activeDirectory.useSecureConnection());
         endpoint.setPort((int) activeDirectory.getPort());
         endpoint.setHost(activeDirectory.getIPAddress());
@@ -195,17 +226,14 @@ public class IdentityService {
             throw new ConnectException(statuses.keySet().toString());
         }
     }
+
     public boolean isConnected() {
-        if (!isConnected && activeDirectory.getId() != null) {
-            // try to (re)-connect
-            isConnected = connect();
-        }
         return isConnected;
     }
 
     public List<Person> findAllPersons(@Nullable String stringFilter) {
         if (stringFilter == null || stringFilter.isEmpty()) {
-            return personRepository.findAll();
+            return personRepository.findAll(Sort.by(Sort.Direction.ASC, "lastName"));
         } else {
             return personRepository.search(stringFilter);
         }
@@ -235,6 +263,8 @@ public class IdentityService {
                 return roleRepository.searchProject(stringFilter);
             } else if (roleResource.isFileShareResource()) {
                 return roleRepository.searchFileShare(stringFilter);
+            } else if (roleResource.isEmailResource()) {
+                return roleRepository.searchMailResource(stringFilter);
             }
             return roleRepository.search(stringFilter);
         }
@@ -245,9 +275,11 @@ public class IdentityService {
                 return roleRepository.findByRoleResource_IsProjectResourceTrueOrderByNameAsc();
             } else if (roleResource.isFileShareResource()) {
                 return roleRepository.findByRoleResource_IsFileShareResourceTrueOrderByNameAsc();
+            } else if (roleResource.isEmailResource()) {
+                return roleRepository.findByRoleResource_IsEmailResourceTrueOrderByNameAsc();
             }
         }
-        if ((stringFilter != null && !stringFilter.isEmpty()) && roleResource == null) {
+        if (stringFilter != null && !stringFilter.isEmpty()) {
             return roleRepository.search(stringFilter);
         }
         return roleRepository.findAll();
@@ -330,22 +362,37 @@ public class IdentityService {
         return adUserRepository.countByPasswordExpiresFalse();
     }
 
-    public boolean importPersonsFromAD() {
+    public boolean updatePersonsFromAD() {
         try {
-            // load accounts from ad
+            int added = 0, updated = 0;
+            // load accounts from AD
             List<EntityResponse> responses = getADUserEntities();
-            // delete all persons and accounts
-            personRepository.deleteAll();
-            adUserRepository.deleteAll();
-            // create / update AD accounts from response
+            // create / update AD user from response
             // we need the accounts first to link with persons
             for (EntityResponse response : responses) {
-                createOrUpdateADUser(response);
+                boolean[] returnValues = createOrUpdateADUser(response);
+                if (returnValues[0]) {
+                    added++;
+                }
+                if (returnValues[1]) {
+                    updated++;
+                }
             }
+            added = 0;
+            updated = 0;
+            addLogEntry(added + " users added, " + updated + " users updated from AD");
             // create / update persons from response
             for (EntityResponse response : responses) {
-                createOrUpdatePerson(response);
+                boolean[] returnValues = createOrUpdatePerson(response);
+                if (returnValues[0]) {
+                    added++;
+                }
+                if (returnValues[1]) {
+                    updated++;
+                }
             }
+            // TODO: Logging
+            addLogEntry(added + " persons added, " + updated + " persons updated");
             // link AD accounts with persons
             List<Person> persons = findAllPersons(null);
             List<ADUser> adUsers = findAllADUsers(null);
@@ -359,50 +406,63 @@ public class IdentityService {
                     }
                 }
             }
-            logger.debug(responses.size() + " persons imported from AD");
             return true;
         } catch (Exception exception) {
-            logger.debug("Import persons from AD failed: " + exception.getMessage());
+            logger.debug("Update persons from AD failed: " + exception.getMessage());
             return false;
         }
     }
 
-    public boolean importUserFromAD() {
+    public boolean updateUserFromAD() {
         try {
+            int added = 0, updated = 0;
             // load accounts from AD
             List<EntityResponse> responses = getADUserEntities();
             // create / update AD accounts from response
             // we need the accounts first to link with persons and ad groups
             for (EntityResponse response : responses) {
-                createOrUpdateADUser(response);
+                boolean[] returnValues = createOrUpdateADUser(response);
+                if (returnValues[0]) {
+                    added++;
+                }
+                if (returnValues[1]) {
+                    updated++;
+                }
             }
-            logger.debug(responses.size() + " user imported from AD");
+            addLogEntry(added + " users added, " + updated + " users updated from AD");
             return true;
         } catch (Exception exception) {
-            logger.debug("Import persons from AD failed: " + exception.getMessage());
+            logger.debug("Update users from AD failed.", exception);
             return false;
         }
     }
 
-    public boolean importGroupsFromAD() {
+    public boolean updateGroupsFromAD() {
         try {
+            int added = 0, updated = 0;
             // load groups from AD
             List<EntityResponse> responses = getADGroupEntities();
             // create / update AD groups from response
             // if AD users available - link by membership
             for (EntityResponse response : responses) {
-                createOrUpdateADGroup(response);
+                boolean[] returnValues = createOrUpdateADGroup(response);
+                if (returnValues[0]) {
+                    added++;
+                }
+                if (returnValues[1]) {
+                    updated++;
+                }
             }
-            logger.debug(responses.size() + " groups imported from AD");
+            addLogEntry(added + " groups added, " + updated + " groups updated from AD");
             return true;
         } catch (Exception exception) {
-            logger.debug("Import persons from AD failed: " + exception.getMessage());
+            logger.debug("Updateing groups from AD failed.", exception);
             return false;
         }
     }
 
     @Transactional
-    public boolean importOrgRolesFromPersons() {
+    public boolean updateOrgRolesFromPersons() {
         Optional<RoleResource> optionalResource = roleResourceRepository.getOrgResource();
         RoleResource orgRoleRoleResource;
         if (optionalResource.isPresent()) {
@@ -410,33 +470,36 @@ public class IdentityService {
         } else {
             // try to create the role resource for org
             if ((orgRoleRoleResource = getRoleResource(Global.ROLE_RESOURCE.ORG_ROLE)) == null){
-                logger.debug("Import org units from persons failed. There are no org unit resource.");
+                logger.debug("Update organisations from persons failed. There are no organisations resource.");
                 return false;
             }
         }
         try {
             // try to create org units from person attribute department
-            // get all existing org from database
-            int importedOrgRoles = 0;
-            List<Role> existingOrgRoles = roleRepository.findByRoleResource_IsOrgResourceTrueOrderByNameAsc();
+            int updatedOrgRolesCount = 0;
             List<String> departmentNames = getUniqueDepartmentNames();
-            // filter the list of department names
-            for(Role existingOrgRole: existingOrgRoles ) {
-                String departmentName = existingOrgRole.getName();
-                departmentNames.remove(departmentName);
+            List<Role> allRoles = findAllRoles(null, null);
+            for (Role role: allRoles) {
+                String departmentName = role.getName();
+                if (departmentNames.contains(departmentName)) {
+                    // set as organisation role
+                    role.setRoleResource(orgRoleRoleResource);
+                    roleRepository.save(role);
+                    departmentNames.remove(departmentName); // remove from list
+                    addLogEntry("Existing Role \"" + role.getName() + "\" updated as organisation role.");
+                }
             }
-            // create only new department roles
+            // add roles for remaining department names
             for (String departmentName: departmentNames) {
                 Role orgRole = new Role();
                 orgRole.setRoleResource(orgRoleRoleResource);
                 orgRole.setName(departmentName);
-                orgRole.setDescription(UI.getCurrent().getTranslation("importFromPersons.description"));
+                orgRole.setDescription(UI.getCurrent().getTranslation("updateFromPersons.description"));
                 roleRepository.save(orgRole);
-                orgRoleRoleResource.addRole(orgRole); // we need to save the relation on role resource
-                roleResourceRepository.save(orgRoleRoleResource);
-                importedOrgRoles++;
+                addLogEntry("Role \"" + orgRole.getName() + "\" added as organisation role.");
+                updatedOrgRolesCount++;
             }
-            logger.debug(importedOrgRoles + " organizations imported from persons");
+            logger.debug(updatedOrgRolesCount + " organizations added or updated from persons");
 
             // set employee flag for persons with equal name of department
             // set managed flag for AD user of this persons
@@ -457,124 +520,107 @@ public class IdentityService {
                         // add person as employee to the org role
                         employee.addRole(orgRole);
                         employee.setEmployee(true);
-                        savePerson(employee);
+                        personRepository.save(employee);
 
-                        logger.debug("Person " + employee.getCentralAccountName() +
-                                " added as employee to the department with name " + departmentName);
+                        orgRole.addPerson(employee);
+                        roleRepository.save(orgRole);
+
+                        addLogEntry("Person \"" + employee.getCentralAccountName() +
+                                "\" added as employee to the department with name " + departmentName);
                     }
                 }
             }
-            logger.debug(importedOrgRoles + " organizations imported from persons");
             return true;
         } catch (Exception exception) {
-            logger.debug("Import org units from persons failed.", exception);
+            logger.debug("Updating organisations from persons failed.", exception);
             return false;
         }
     }
 
-    public boolean importOrgRolesFromJSON() {
-        return false;
-    }
-
-    public boolean importRolesFromGroups() {
+    public boolean assignPersonsToRoles(List<Person> persons) {
         try {
-            if (adGroupRepository.count() == 0) {
-                logger.debug("Import roles from AD groups failed. There are AD groups in database. Please import from AD first.");
+            int assignedPersonsCount = 0;
+            int assignedRolesCount = 0;
+            if (persons == null) {
                 return false;
             }
-            int importedRoles = 0;
+            for (Person person : persons) {
+                // get managed AD users of person
+                List<ADUser> assignedADUsers = adUserRepository.findByPerson_IdAndIsRoleManagedTrue(person.getId());
+                for (ADUser assignedADUser : assignedADUsers) {
+                    // get the AD groups of AD user from AD
+                    List<ADGroup> adGroupsOfAssignedADUser = getADGroupsForUser(assignedADUser);
+                    for (ADGroup adGroup : adGroupsOfAssignedADUser) {
+                        // get the role with the name of the AD group
+                        Optional<Role> optionalRole = roleRepository.findFirstByName(adGroup.getName());
+                        if (optionalRole.isPresent()) {
+                            // add the person and the AD group to the role
+                            Role role = optionalRole.get();
+                            role.addPerson(person);
+                            role.addADGroup(adGroup);
+                            roleRepository.save(role);
+                            person.addRole(role);
+                            personRepository.save(person);
+                            assignedRolesCount++;
+                            addLogEntry("Person \"" + person.getCentralAccountName() + "\" and \"" +
+                                    adGroup.getName() + "\" added to the role \"" + role.getName() + "\"");
+                        }
+                    }
+                    assignedPersonsCount++;
+                }
+            }
+            logger.debug(assignedPersonsCount + " from " + persons.size() + " assigned to " + assignedRolesCount + " roles");
+            return true;
+        } catch (Exception exception) {
+            logger.debug("Error while assign persons to roles automatically.", exception);
+            return false;
+        }
+    }
+
+    @Transactional
+    public boolean updateRolesFromGroups() {
+        try {
+            if (adGroupRepository.count() == 0) {
+                logger.debug("Update roles from AD groups failed. There are AD groups in database. Please import from AD first.");
+                return false;
+            }
+            int added = 0, updated = 0;
             List<ADGroup> adGroups = adGroupRepository.findAll();
-            List<Role> roles = roleRepository.findAll();
             for (ADGroup adGroup: adGroups) {
-                boolean roleCanBeAdded = true;
                 String name = adGroup.getName();
-                for (Role role: roles) {
-                    if (role.getName().equalsIgnoreCase(name)) {
-                        roleCanBeAdded = false;
-                    }
+                Optional<Role> optionalRole = roleRepository.findFirstByName(name);
+                Role role;
+                if (optionalRole.isPresent()) {
+                    // update
+                    role = optionalRole.get();
+                    updated++;
+                } else {
+                    // add new role from AD group
+                    role = new Role();
+                    role.setName(adGroup.getName());
+                    added++;
                 }
-                if (roleCanBeAdded) {
-                    // set the role resource
-                    RoleResource roleResource;
-                    if (isProjectByName(name)) {
-                        roleResource = getRoleResource(Global.ROLE_RESOURCE.PROJECT_ROLE);
-                    } else {
-                        roleResource = getRoleResource(Global.ROLE_RESOURCE.DEFAULT_ROLE);
-                    }
-                    if (roleResource == null) {
-                        logger.debug("Role " + name + " can not be imported. Role resource ist null.");
-                        break;
-                    }
-                    // create a role from ad group
-                    Role role = new Role();
-                    role.setName(name);
-                    role.setDescription(adGroup.getDescription());
-                    role.setAdminRole(isAdminByName(name)); // admin role
+                role.setDescription(adGroup.getDescription());
+                role.setAdminRole(isAdminByName(name));
+                role.addADGroup(adGroup);
+                adGroup.addRole(role); // many-to-many relationship
+                adGroupRepository.save(adGroup);
+                RoleResource roleResource = getRoleResourceByADGroup(adGroup);
+                if (roleResource != null) {
                     role.setRoleResource(roleResource);
-                    roleRepository.save(role);
-                    roleResource.addRole(role); // we need to save the relation on role resource
-                    roleResourceRepository.save(roleResource);
-                    importedRoles++;
                 }
+                roleRepository.save(role);
             }
-            logger.debug(importedRoles + " roles imported from AD groups");
+            addLogEntry(added + " roles added and " + updated + " roles updated from AD groups");
             return true;
         } catch (Exception exception) {
-            logger.debug("Import roles from AD groups failed: " + exception.getMessage());
+            logger.debug("Update roles from AD groups failed.", exception);
             return false;
         }
     }
 
-    public boolean importRolesFromGroups(RoleResource roleResource) {
-        try {
-            if (adGroupRepository.count() == 0) {
-                logger.debug("Import roles from AD groups failed. There are no AD groups in database. Please import from AD first.");
-                return false;
-            }
-            if (roleResource == null) {
-                logger.debug("Import roles from AD groups failed. The role resource is null.");
-                return false;
-            }
-            int importedRoles = 0;
-            List<ADGroup> adGroups;
-            if (roleResource.isProjectResource()) {
-                adGroups = adGroupRepository.search(Global.IMPORT_SETTINGS.PROJECT_ROLE_TEXT);
-            } else if (roleResource.isFileShareResource()) {
-                adGroups = adGroupRepository.search(Global.IMPORT_SETTINGS.FILE_SHARE_ROLE_TEXT);
-            } else {
-                adGroups = new ArrayList<>(); // empty list
-            }
-            List<Role> roles = roleRepository.findAll();
-            for (ADGroup adGroup: adGroups) {
-                boolean roleCanBeAdded = true;
-                String name = adGroup.getName();
-                for (Role role: roles) {
-                    if (role.getName().equalsIgnoreCase(name)) {
-                        roleCanBeAdded = false;
-                    }
-                }
-                if (roleCanBeAdded) {
-                    // create a role from ad group
-                    Role role = new Role();
-                    role.setName(name);
-                    role.setDescription(adGroup.getDescription());
-                    role.setAdminRole(isAdminByName(name)); // admin role
-                    role.setRoleResource(roleResource);
-                    roleRepository.save(role);
-                    roleResource.addRole(role); // we need to save the relation on role resource
-                    roleResourceRepository.save(roleResource);
-                    importedRoles++;
-                }
-            }
-            logger.debug(importedRoles + " roles imported from AD groups");
-            return true;
-        } catch (Exception exception) {
-            logger.debug("Import roles from AD groups failed: " + exception.getMessage());
-            return false;
-        }
-    }
-
-    public void importRolesFromJSON() {
+    public boolean importRolesFromJSON(RoleResource roleResource) {
+        return false;
     }
 
     @Transactional
@@ -603,7 +649,7 @@ public class IdentityService {
             personRepository.save(person);
             return true;
         } catch (Exception exception) {
-            logger.debug("Error while saving person " + person.getCentralAccountName() + " .", exception);
+            logger.debug("Error while saving person \"" + person.getCentralAccountName() + "\"", exception);
             return false;
         }
     }
@@ -690,7 +736,7 @@ public class IdentityService {
             adGroupRepository.save(adGroup);
             return true;
         } catch (Exception exception) {
-            logger.debug("Error while saving AD group " + adGroup.getName() + " .", exception);
+            logger.debug("Error while saving AD group \"" + adGroup.getName() + "\"", exception);
             return false;
         }
     }
@@ -785,10 +831,10 @@ public class IdentityService {
                 adGroupRepository.save(adGroup);
             }
 
-           roleRepository.delete(role);
-            logger.debug("Role " + role.getName() + " deleted.");
+            roleRepository.delete(role);
+            addLogEntry("Role \"" + role.getName() + "\" deleted.");
         } catch (Exception exception) {
-            logger.debug("Error while deleting role " + role.getName(), exception);
+            logger.debug("Error while deleting role \"" + role.getName() + "\"", exception);
         }
     }
 
@@ -803,9 +849,9 @@ public class IdentityService {
             }
 
             personRepository.delete(person);
-            logger.debug("Person " + person.getCentralAccountName() + " deleted.");
+            addLogEntry("Person \"" + person.getCentralAccountName() + " \"deleted.");
         } catch (Exception exception) {
-            logger.debug("Error while deleting person " + person.getCentralAccountName(), exception);
+            logger.debug("Error while deleting person \"" + person.getCentralAccountName() + "\"", exception);
         }
     }
 
@@ -818,9 +864,9 @@ public class IdentityService {
                 roleRepository.save(role);
             }
             adUserRepository.delete(adUser);
-            logger.debug("AD user " + adUser.getDistinguishedName() + " deleted.");
+            addLogEntry("AD user \"" + adUser.getDistinguishedName() + "\" deleted.");
         } catch (Exception exception) {
-            logger.debug("Error while deleting AD user " + adUser.getDistinguishedName(), exception);
+            logger.debug("Error while deleting AD user \"" + adUser.getDistinguishedName() + "\"", exception);
         }
     }
 
@@ -828,28 +874,28 @@ public class IdentityService {
     private void deleteADGroupComplete(ADGroup adGroup) {
         try {
             adGroupRepository.delete(adGroup);
-            logger.debug("AD group " + adGroup.getDistinguishedName() + " deleted.");
+            addLogEntry("AD group \"" + adGroup.getDistinguishedName() + "\" deleted.");
         } catch (Exception exception) {
-            logger.debug("Error while deleting AD group " + adGroup.getDistinguishedName(), exception);
+            logger.debug("Error while deleting AD group \"" + adGroup.getDistinguishedName() + "\"", exception);
         }
     }
 
-    private boolean connect() {
+    private void connect() {
         try {
             if (isConnected) {
-                return true;
+                return;
             }
             if (activeDirectory == null) {
-                String errorMessage = UI.getCurrent().getTranslation("error.domain.connection.ad.empty");
-                logger.debug(errorMessage);
-                return false;
+                logger.debug("Can not connect to the AD - AD is not configured.");
+                isConnected = false;
+                return;
             }
             queryRequest = new QueryRequest();
             queryRequest.setDirectoryType(DirectoryType.MS_ACTIVE_DIRECTORY);
             queryRequest.setSizeLimit(1000); //TODO: read from config
             queryRequest.setTimeLimit(1000); //TODO: read from config
             // try to connect - add all valid endpoints to the query request
-            final Endpoint endpoint = new Endpoint();
+            endpoint = new Endpoint();
             endpoint.setSecuredConnection(activeDirectory.useSecureConnection());
             endpoint.setPort((int) activeDirectory.getPort());
             endpoint.setHost(activeDirectory.getIPAddress());
@@ -858,18 +904,17 @@ public class IdentityService {
             final ConnectionResponse connectionResponse = DirectoryConnectorService.authenticate(endpoint);
             if (connectionResponse.isError()) {
                 logger.debug("The connection to the Active Directory failed.");
-                return false;
             }
             queryRequest.addEndpoint(endpoint);
-            return isConnected = true;
+            isConnected = true;
         } catch (Exception exception) {
             logger.debug("The connection to the Active Directory failed.", exception);
-            return false;
+            isConnected = false;
         }
     }
 
     private List<EntityResponse> getADUserEntities() {
-        if (isConnected) {
+        if (isConnected()) {
             try {
                 queryRequest.setObjectType(ObjectType.USER);
                 //TODO: set filter by config
@@ -883,6 +928,7 @@ public class IdentityService {
                 queryRequest.addRequestedField(Global.ADAttributes.DISPLAY_NAME);
                 queryRequest.addRequestedField(Global.ADAttributes.DESCRIPTION);
                 queryRequest.addRequestedField(Global.ADAttributes.ACCOUNT_EXPIRES);
+                queryRequest.addRequestedField(Global.ADAttributes.SID);
                 queryRequest.addRequestedField(FieldType.LOGON_NAME);
                 queryRequest.addRequestedField(FieldType.DISTINGUISHED_NAME);
                 queryRequest.addRequestedField(FieldType.FIRST_NAME);
@@ -911,6 +957,7 @@ public class IdentityService {
                 // get all fields needed for entity ad group
                 queryRequest.addRequestedField(Global.ADAttributes.GROUP_TYPE);
                 queryRequest.addRequestedField(Global.ADAttributes.DESCRIPTION);
+                queryRequest.addRequestedField(Global.ADAttributes.SID);
                 queryRequest.addRequestedField(FieldType.COMMON_NAME);
                 queryRequest.addRequestedField(FieldType.DISTINGUISHED_NAME);
                 queryRequest.addRequestedField(FieldType.MEMBER);
@@ -929,48 +976,36 @@ public class IdentityService {
         List<ADGroup> adGroups = new ArrayList<>();
         if (isConnected) {
             try {
-                queryRequest.setObjectType(ObjectType.USER);
-                // get AD user by distinguished name
-                queryRequest.addSearchSentence(new QueryAssembler()
-                        .addPhrase(FieldType.DISTINGUISHED_NAME, PhraseOperator.EQUAL, adUser.getDistinguishedName())
-                        .closeSentence());
-                // get membership for the user
-                queryRequest.addRequestedField(FieldType.MEMBER);
-                Connector connector = new Connector(queryRequest);
-                QueryResponse queryResponse = connector.execute();
-                List<EntityResponse> responses =  queryResponse.getAll();
-                if (responses.size() == 0) {
-                    return adGroups;
-                }
-                if (responses.size() > 1) {
-                    logger.debug("More than one AD user found with distinguished name " + adUser.getDistinguishedName());
-                    return adGroups;
-                }
-                for (EntityResponse response: responses) {
-                    List<Field> fields = response.getValue();
+                // get assigned AD groups of the AD user
+                List<String> logonNames = new ArrayList<>(1);
+                logonNames.add(adUser.getLogonName());
+                List<EntityResponse> entityResponses = DirectoryConnectorService.isMemberOf(logonNames, endpoint);
+                for (EntityResponse entityResponse: entityResponses) {
+                    List<Field> fields = entityResponse.getValue();
                     for (Field field : fields) {
                         FieldType fieldType = field.getType(); // can be null
                         if (fieldType != null) {
-                            if (fieldType.equals(FieldType.MEMBER)) {
-                                Object object = field.getValue();
-                                if (object instanceof List) {
-                                    System.out.println("JA");
-                                }
+                            if (fieldType.equals(FieldType.COMMON_NAME)) {
+                                String adGroupName = (String) field.getValue();
+                                // add AD group with this name to the list
+                                Optional<ADGroup> optionalADGroup = adGroupRepository.findFirstByName(adGroupName);
+                                optionalADGroup.ifPresent(adGroups::add);
                             }
                         }
                     }
                 }
-
             } catch (Exception exception) {
-                logger.debug("Error occurred while loading groups from AD.", exception);
+                logger.debug("Error occurred while getting groups for user \""
+                        + adUser.getDistinguishedName() +  " from AD.", exception);
                 return adGroups;
             }
         }
         return adGroups;
     }
 
-    private void createOrUpdateADUser(EntityResponse response) {
-        ADUser adUser = new ADUser();
+    private boolean[] createOrUpdateADUser(EntityResponse response) {
+        boolean[] returnValues = new boolean[2]; // {added, updated}
+        ADUser updatedADUser = new ADUser();
         try {
             boolean isUpdate = countADUsers() > 0;
             List<Field> fields = response.getValue();
@@ -978,42 +1013,68 @@ public class IdentityService {
                 FieldType fieldType = field.getType(); // can be null
                 if (fieldType != null) {
                     if (fieldType.equals(FieldType.LOGON_NAME)) {
-                        adUser.setLogonName((String) field.getValue());
+                        String fieldString = (String) field.getValue();
+                        if (fieldString.isEmpty()) {
+                            logger.debug("The logon name of an user could not be determined.");
+                            return returnValues;
+                        }
+                        updatedADUser.setLogonName(fieldString);
                     }
                     if (fieldType.equals(FieldType.DISTINGUISHED_NAME)) {
-                        adUser.setDistinguishedName((String) field.getValue());
+                        String fieldString = (String) field.getValue();
+                        if (fieldString.isEmpty()) {
+                            logger.debug("The distinguished name of an user could not be determined.");
+                            return returnValues;
+                        }
+                        updatedADUser.setDistinguishedName(fieldString);
                     }
                     // account enabled / password expiration
                     if (fieldType.equals(FieldType.USER_ACCOUNT_CONTROL)) {
-                        adUser.setEnabled(accountEnabled((String) field.getValue()));
-                        adUser.setPasswordExpires(passwordExpires((String) field.getValue()));
+                        updatedADUser.setEnabled(accountEnabled((String) field.getValue()));
+                        updatedADUser.setPasswordExpires(passwordExpires((String) field.getValue()));
                     }
+                }
+                if (field.getName().equalsIgnoreCase(Global.ADAttributes.SID)) {
+                    String objectSidString = convertSidToString((byte[]) field.getValue());
+                    if (objectSidString.isEmpty()) {
+                        logger.debug("The SID of an user could not be determined.");
+                        return returnValues;
+                    }
+                    updatedADUser.setObjectSID(objectSidString);
                 }
             }
             if (isUpdate) {
-                Optional<ADUser> optionalADUser = adUserRepository.findFirstByDistinguishedName(adUser.getDistinguishedName());
+                Optional<ADUser> optionalADUser = adUserRepository.findFirstByObjectSID(updatedADUser.getObjectSID());
                 if (optionalADUser.isPresent()) {
-                    // set the id of the existing object
-                    adUser.setId(optionalADUser.get().getId());
-                    // set linked person
-                    adUser.setPerson(optionalADUser.get().getPerson());
-                    // save as updated object
+                    // update the existing AD user
+                    ADUser adUser = optionalADUser.get();
+                    // attributes can be changed
+                    adUser.setDistinguishedName(updatedADUser.getDistinguishedName());
+                    adUser.setLogonName(updatedADUser.getLogonName());
+                    adUser.setAdminAccount(isAdminByName(updatedADUser.getLogonName()));
                     adUserRepository.save(adUser);
+                    addLogEntry("AD user \"" + updatedADUser.getLogonName() + "\" updated.");
+                    returnValues[1] = true; // update
                 } else {
-                    adUserRepository.save(adUser);
+                    adUserRepository.save(updatedADUser);
+                    addLogEntry("AD user \"" + updatedADUser.getLogonName() + "\" added.");
+                    returnValues[0] = true; // add
                 }
             } else {
-                adUserRepository.save(adUser);
+                adUserRepository.save(updatedADUser);
+                addLogEntry("AD user \"" + updatedADUser.getLogonName() + "\" added.");
+                returnValues[0] = true; // add
             }
-            logger.debug("Add or update AD user " + adUser.getLogonName() + " .");
         } catch (Exception exception) {
-            logger.debug("Add or update AD user " + adUser.getLogonName() + " failed: " + exception.getMessage());
+            logger.debug("Add or update AD user \"" + updatedADUser.getLogonName() + "\" failed: "
+                    + exception.getMessage());
         }
+        return returnValues;
     }
 
-    @Transactional
-    private boolean createOrUpdateADGroup(EntityResponse response) {
-        ADGroup adGroup = new ADGroup();
+    private boolean[] createOrUpdateADGroup(EntityResponse response) {
+        boolean[] returnValues = new boolean[2]; // {added, updated}
+        ADGroup updatedADGroup = new ADGroup();
         try {
             boolean isUpdate = countADGroups() > 0;
             List<Field> fields = response.getValue();
@@ -1021,61 +1082,81 @@ public class IdentityService {
                 FieldType fieldType = field.getType(); // can be null
                 if (fieldType != null) {
                     if (fieldType.equals(FieldType.COMMON_NAME)) {
-                        String name = (String) field.getValue();
-                        adGroup.setName(name);
+                        String fieldString = (String) field.getValue();
+                        if (fieldString.isEmpty()) {
+                            logger.debug("The name of a group could not be determined.");
+                            return returnValues;
+                        }
+                        updatedADGroup.setName(fieldString);
                         // check for "admin group"
-                        adGroup.setAdminGroup(isAdminByName(name));
+                        updatedADGroup.setAdminGroup(isAdminByName(fieldString));
                     }
                     if (fieldType.equals(FieldType.DISTINGUISHED_NAME)) {
-                        adGroup.setDistinguishedName((String) field.getValue());
+                        String fieldString = (String) field.getValue();
+                        if (fieldString.isEmpty()) {
+                            logger.debug("The distinguished name of a group could not be determined.");
+                            return returnValues;
+                        }
+                        updatedADGroup.setDistinguishedName(fieldString);
                     }
+                }
+                if (field.getName().equalsIgnoreCase(Global.ADAttributes.SID)) {
+                    String objectSidString = convertSidToString((byte[]) field.getValue());
+                    if (objectSidString.isEmpty()) {
+                        logger.debug("The SID of an user could not be determined.");
+                        return returnValues;
+                    }
+                    updatedADGroup.setObjectSID(objectSidString);
                 }
                 if (field.getName().equalsIgnoreCase(Global.ADAttributes.DESCRIPTION)) {
                     // the length is set to 255 characters
                     String description = (String) field.getValue();
                     if (description.length() > Global.IMPORT_SETTINGS.MAX_STRING_LENGTH) {
-                        adGroup.setDescription(description.substring(0, Global.IMPORT_SETTINGS.MAX_STRING_LENGTH - 1));
+                        updatedADGroup.setDescription(description.substring(0, Global.IMPORT_SETTINGS.MAX_STRING_LENGTH - 1));
                     } else {
-                        adGroup.setDescription(description);
+                        updatedADGroup.setDescription(description);
                     }
 
                 }
                 // group area / group type
                 if (field.getName().equalsIgnoreCase(Global.ADAttributes.GROUP_TYPE)) {
-                    adGroup.setGroupArea(groupAreaFromString((String) field.getValue()));
-                    adGroup.setGroupType(groupTypeFromString((String) field.getValue()));
+                    updatedADGroup.setGroupArea(groupAreaFromString((String) field.getValue()));
+                    updatedADGroup.setGroupType(groupTypeFromString((String) field.getValue()));
                 }
             }
             if (isUpdate) {
-                Optional<ADGroup> optionalADAGroup = adGroupRepository.findByDistinguishedName(adGroup.getDistinguishedName());
+                Optional<ADGroup> optionalADAGroup = adGroupRepository.findFirstByObjectSID(updatedADGroup.getObjectSID());
                 if (optionalADAGroup.isPresent()) {
-                    // set the id of the existing object
-                    adGroup.setId(optionalADAGroup.get().getId());
-                    // set linked roles
-                    Set<Role> roles = optionalADAGroup.get().getRoles();
-                    adGroup.setRoles(roles);
-                    for (Role role: roles) {
-                        role.addADGroup(adGroup);
-                        roleRepository.save(role);
-                    }
+                    // update existing AD group
+                    ADGroup adGroup = optionalADAGroup.get();
+                    // attribute can be change
+                    adGroup.setName(updatedADGroup.getName());
+                    adGroup.setDistinguishedName(updatedADGroup.getDistinguishedName());
+                    adGroup.setAdminGroup(isAdminByName(updatedADGroup.getName()));
+                    adGroup.setDescription(updatedADGroup.getDescription());
                     // save as updated object
                     adGroupRepository.save(adGroup);
+                    addLogEntry("AD group \"" + updatedADGroup.getName() + "\" updated.");
+                    returnValues[1] = true; // update
                 } else {
-                    adGroupRepository.save(adGroup);
+                    adGroupRepository.save(updatedADGroup);
+                    addLogEntry("AD group \"" + updatedADGroup.getName() + "\" added.");
+                    returnValues[0] = true; // add
                 }
             } else {
-                adGroupRepository.save(adGroup);
+                adGroupRepository.save(updatedADGroup);
+                addLogEntry("AD group \"" + updatedADGroup.getName() + "\" added.");
+                returnValues[0] = true; // add
             }
-            logger.debug("Add or update AD group " + adGroup.getName() + " .");
-            return true;
         } catch (Exception exception) {
-            logger.debug("Add or update AD group " + adGroup.getName() + " failed: " + exception.getMessage());
-            return false;
+            logger.debug("Add or update AD group \"" + updatedADGroup.getName() + "\" failed: " + exception.getMessage());
         }
+        return returnValues;
     }
 
-    private void createOrUpdatePerson(EntityResponse response) {
-        Person person = new Person();
+    private boolean[] createOrUpdatePerson(EntityResponse response) {
+        boolean[] returnValues = new boolean[2]; // {added, updated}
+        Person updatedPerson = new Person();
         try {
             boolean isUpdate = countPersons() > 0;
             List<Field> fields = response.getValue();
@@ -1084,29 +1165,29 @@ public class IdentityService {
                 if (fieldType != null) {
                     // set values
                     if (fieldType.equals(FieldType.LOGON_NAME)) {
-                        person.setCentralAccountName((String) field.getValue());
-                        if (person.getLastName().length() == 0) {
+                        updatedPerson.setCentralAccountName((String) field.getValue());
+                        if (updatedPerson.getLastName().length() == 0) {
                             // last name of person must be not empty
-                            person.setLastName((String) field.getValue());
+                            updatedPerson.setLastName((String) field.getValue());
                         }
                     }
                     if (fieldType.equals(FieldType.FIRST_NAME)) {
-                        person.setFirstName((String) field.getValue());
+                        updatedPerson.setFirstName((String) field.getValue());
                     }
                     if (fieldType.equals(FieldType.LAST_NAME)) {
-                        person.setLastName((String) field.getValue());
+                        updatedPerson.setLastName((String) field.getValue());
                     }
                     if (fieldType.equals(FieldType.EMAIL)) {
-                        person.setEmailAddress((String) field.getValue());
+                        updatedPerson.setEmailAddress((String) field.getValue());
                     }
                     if (fieldType.equals(FieldType.PHONE_NUMBER)) {
-                        person.setPhoneNumber((String) field.getValue());
+                        updatedPerson.setPhoneNumber((String) field.getValue());
                     }
                     if (fieldType.equals(FieldType.MOBILE_PHONE)) {
-                        person.setMobilePhoneNumber((String) field.getValue());
+                        updatedPerson.setMobilePhoneNumber((String) field.getValue());
                     }
                     if (fieldType.equals(FieldType.DEPARTMENT)) {
-                        person.setDepartmentName((String) field.getValue());
+                        updatedPerson.setDepartmentName((String) field.getValue());
                     }
                     if (fieldType.equals(FieldType.CREATION_TIME)) {
                         // possible entry date
@@ -1118,10 +1199,10 @@ public class IdentityService {
                             LocalDate entryDate = Instant.ofEpochMilli(convertedEntryDate.getTime())
                                     .atZone(ZoneId.systemDefault())
                                     .toLocalDate();
-                            person.setEntryDate(entryDate);
+                            updatedPerson.setEntryDate(entryDate);
 
                         } catch (Exception exception) {
-                            person.setEntryDate(Global.EMPLOYEE_DEFAULT_VALUES.ENTRY_DATE);
+                            updatedPerson.setEntryDate(Global.EMPLOYEE_DEFAULT_VALUES.ENTRY_DATE);
                             logger.debug("Error while get the entry date from AD attribute 'whenCreated'");
                         }
 
@@ -1129,13 +1210,13 @@ public class IdentityService {
                 }
                 // last name of person must be not empty
                 if (field.getName().equalsIgnoreCase(Global.ADAttributes.DISPLAY_NAME)) {
-                    if (person.getLastName().length() == 0) {
-                        person.setLastName((String) field.getValue());
+                    if (updatedPerson.getLastName().length() == 0) {
+                        updatedPerson.setLastName((String) field.getValue());
                     }
                 }
                 // description
                 if (field.getName().equalsIgnoreCase(Global.ADAttributes.DESCRIPTION)) {
-                    person.setDescription((String) field.getValue());
+                    updatedPerson.setDescription((String) field.getValue());
                 }
                 // possible exit date
                 if (field.getName().equalsIgnoreCase(Global.ADAttributes.ACCOUNT_EXPIRES)) {
@@ -1146,42 +1227,76 @@ public class IdentityService {
                         Date convertedExitDate = DateUtils.convertIntervalDate(adDateString);
                         LocalDate exitDate = Instant.ofEpochMilli(convertedExitDate.getTime())
                                 .atZone(ZoneId.systemDefault())
-                                .toLocalDate();
+                                .toLocalDate().minusDays(1); // account is locked at 00:00
                         // if account does not expire -> year is setting to 30828
-                        if (exitDate.isBefore(Global.EMPLOYEE_DEFAULT_VALUES.EXIT_DATE)){
-                            person.setExitDate(exitDate);
+                        if (exitDate.isAfter(Global.EMPLOYEE_DEFAULT_VALUES.EXIT_DATE) ||
+                                (exitDate.isAfter(Global.EMPLOYEE_DEFAULT_VALUES.MIN_UPPER_DATE))){
+                            updatedPerson.setExitDate(exitDate);
                         } else {
-                            person.setExitDate(Global.EMPLOYEE_DEFAULT_VALUES.EXIT_DATE);
+                            updatedPerson.setExitDate(Global.EMPLOYEE_DEFAULT_VALUES.EXIT_DATE);
                         }
                     } catch (Exception exception) {
-                        person.setExitDate(Global.EMPLOYEE_DEFAULT_VALUES.EXIT_DATE);
+                        updatedPerson.setExitDate(Global.EMPLOYEE_DEFAULT_VALUES.EXIT_DATE);
                         logger.debug("Error while get the exit date from AD attribute "
                                 + Global.ADAttributes.ACCOUNT_EXPIRES, exception);
                     }
                 }
             }
             if (isUpdate) {
-                Optional<Person> optionalPerson = personRepository.findByAdUsers_LogonName(person.getCentralAccountName());
+                Optional<Person> optionalPerson = personRepository.findByAdUsers_LogonName(updatedPerson.getCentralAccountName());
                 if (optionalPerson.isPresent()) {
-                    Person p = optionalPerson.get();
-                    // set the id of the existing object
-                    person.setId(p.getId());
-                    // set the linked ad accounts
-                    person.setADUsers(p.getADUsers());
-                    // update central account - if was ad accounts linked
-                    if (person.getADUsers().size() > 0) {
-                        person.setCentralAccountName(p.getCentralAccountName());
-                    }
+                    Person person = optionalPerson.get();
+                    // attribute can be changed
+                    person.setFirstName(updatedPerson.getFirstName());
+                    person.setLastName(updatedPerson.getLastName());
+                    person.setEmailAddress(updatedPerson.getEmailAddress());
+                    person.setPhoneNumber(updatedPerson.getPhoneNumber());
+                    person.setMobilePhoneNumber(updatedPerson.getMobilePhoneNumber());
+                    person.setEntryDate(updatedPerson.getEntryDate());
+                    person.setExitDate(updatedPerson.getExitDate());
                     // save as updated object
                     personRepository.save(person);
+                    addLogEntry("Person \"" + updatedPerson.getCentralAccountName() + "\" updated.");
+                    returnValues[1] = true; // update
                 } else {
-                    personRepository.save(person);
+                    personRepository.save(updatedPerson);
+                    addLogEntry("Person \"" + updatedPerson.getCentralAccountName() + "\" added.");
+                    returnValues[0] = true; // add
                 }
             } else {
-                personRepository.save(person);
+                personRepository.save(updatedPerson);
+                addLogEntry("Person \"" + updatedPerson.getCentralAccountName() + "\" added.");
+                returnValues[0] = true; // add
             }
         } catch (Exception exception) {
-            logger.debug("Add or update person " + person.getCentralAccountName() + " failed: " + exception.getMessage());
+            logger.debug("Add or update person \"" + updatedPerson.getCentralAccountName() + "\" failed: "
+                    + exception.getMessage());
+        }
+        return returnValues;
+    }
+
+    // @see https://administrator.de/forum/mit-java-sid-des-angemeldeten-benutzers-auslesen-und-in-variable-schreiben-336662.html
+    private String convertSidToString(byte[] sid) {
+        try {
+            if (sid == null) {
+                return "";
+            }
+            if (sid.length < 8 || sid.length % 4 != 0) {
+                return "";
+            }
+            StringBuilder sb = new StringBuilder();
+            sb.append("S-").append(sid[0]);
+            int c = sid[1];
+            ByteBuffer bb = ByteBuffer.wrap(sid);
+            sb.append("-").append(bb.getLong() & 0XFFFFFFFFFFFFL);
+            bb.order(ByteOrder.LITTLE_ENDIAN);
+            for (int i = 0; i < c; i++) {
+                sb.append("-").append((long) bb.getInt() & 0xFFFFFFFFL);
+            }
+            return sb.toString();
+        } catch (Exception exception) {
+            logger.debug("Error while converting SID to String.", exception);
+            return "";
         }
     }
 
@@ -1249,10 +1364,61 @@ public class IdentityService {
         return matcher.find();
     }
 
-    private boolean isProjectByName(String name) {
+    @Nullable
+    private RoleResource getRoleResourceByADGroup(ADGroup adGroup) {
+        String name = adGroup.getName();
+        RoleResource roleResource;
+        if (isProjectRoleByName(name)) {
+            roleResource = getRoleResource(Global.ROLE_RESOURCE.PROJECT_ROLE);
+        } else if (isFileShareRoleByName(name)) {
+            roleResource = getRoleResource(Global.ROLE_RESOURCE.FILE_SHARE_ROLE);
+        } else if (isEmailRoleByADGroup(adGroup)) {
+            roleResource = getRoleResource(Global.ROLE_RESOURCE.EMAIL_RESOURCE_ROLE);
+        } else {
+            roleResource = getRoleResource(Global.ROLE_RESOURCE.DEFAULT_ROLE);
+        }
+        return roleResource;
+    }
+
+    private boolean isProjectRoleByName(String name) {
         Pattern pattern = Pattern.compile(Pattern.quote(Global.IMPORT_SETTINGS.PROJECT_ROLE_TEXT),
                 Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(name);
         return matcher.find();
+    }
+
+    private boolean isFileShareRoleByName(String name) {
+        Pattern pattern = Pattern.compile(Pattern.quote(Global.IMPORT_SETTINGS.FILE_SHARE_ROLE_TEXT),
+                Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(name);
+        return matcher.find();
+    }
+    
+    private boolean isEmailRoleByADGroup(ADGroup adGroup) {
+        String name = adGroup.getName();
+        Pattern pattern = Pattern.compile(Pattern.quote(Global.IMPORT_SETTINGS.EMAIL_ROLE_TEXT),
+                Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(name);
+        return (matcher.find() || adGroup.getGroupType() == Global.ADGroupType.DISTRIBUTION
+                || adGroup.getGroupArea() == Global.ADGroupArea.UNIVERSAL);
+    }
+
+    private void addLogEntry(String message) {
+        // determine the actual user
+        if (sessionUser == null) {
+            try {
+                sessionUser = (org.springframework.security.core.userdetails.User) SecurityContextHolder
+                        .getContext().getAuthentication().getPrincipal();
+            } catch (Exception exception) {
+                logger.debug("Could not determine the logged in user.", exception);
+                sessionUser = null;
+            }
+        }
+        if (sessionUser != null) {
+            // TODO: logging
+            logger.debug("This action was triggered by \"" + sessionUser.getUsername() + "\": " + message);
+        } else {
+            logger.debug(message);
+        }
     }
 }

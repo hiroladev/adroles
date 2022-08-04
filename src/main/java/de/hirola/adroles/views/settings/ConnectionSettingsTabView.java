@@ -31,11 +31,11 @@ import java.net.ConnectException;
 public class ConnectionSettingsTabView extends VerticalLayout implements ComponentEventListener<ClickEvent<Button>> {
 
     private final Logger logger = LoggerFactory.getLogger(ConnectionSettingsTabView.class);
+    private final Binder<ActiveDirectory> activeDirectoryBinder = new BeanValidationBinder<>(ActiveDirectory.class);
     private final ActiveDirectory activeDirectory; //TODO: in v.0.1 only 1 DC is possible
     private final IdentityService service;
     private Button saveButton;
     private Button verifyButton;
-    private final Binder<ActiveDirectory> activeDirectoryBinder = new BeanValidationBinder<>(ActiveDirectory.class);
 
     public ConnectionSettingsTabView(IdentityService service) {
         this.service = service;
@@ -75,11 +75,11 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
                 .bind(ActiveDirectory::getPort, ActiveDirectory::setPort);
         add(serverPortTextField);
 
-        Checkbox secureConnectionCheckBox = new Checkbox(getTranslation("domain.secure"));
+        Checkbox useSecureConnection = new Checkbox(getTranslation("domain.secure"));
         activeDirectoryBinder
-                .forField(secureConnectionCheckBox)
+                .forField(useSecureConnection)
                 .bind(ActiveDirectory::useSecureConnection, ActiveDirectory::setUseSecureConnection);
-        add(secureConnectionCheckBox);
+        add(useSecureConnection);
 
         TextField usernameTextField = new TextField(getTranslation("username"));
         usernameTextField.setPlaceholder("CN=AD-Roles,CN=Users,DC=example,DC=com");
@@ -97,6 +97,12 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
                 .withValidator(password -> password.length() > 0, getTranslation("error.input.all.empty"))
                 .bind(ActiveDirectory::getEncryptedConnectionPassword, ActiveDirectory::setEncryptedConnectionPassword);
         add(passwordField);
+
+        Checkbox isReadOnly = new Checkbox(getTranslation("readOnly"));
+        activeDirectoryBinder
+                .forField(isReadOnly)
+                .bind(ActiveDirectory::isReadOnly, ActiveDirectory::setReadOnly);
+        add(isReadOnly);
 
         saveButton = new Button(getTranslation("save"));
         saveButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);

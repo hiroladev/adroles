@@ -7,7 +7,6 @@ import javax.persistence.FetchType;
 import javax.persistence.OneToMany;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
-import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -37,6 +36,7 @@ public class RoleResource extends AbstractEntity implements Comparable<RoleResou
     private boolean isOrgResource;
     private boolean isProjectResource;
     private boolean isFileShareResource;
+    private boolean isEmailResource;
 
     @OneToMany(mappedBy = "roleResource", fetch= FetchType.EAGER, orphanRemoval = true)
     private Set<Role> roles = new LinkedHashSet<>();
@@ -94,6 +94,7 @@ public class RoleResource extends AbstractEntity implements Comparable<RoleResou
         isOrgResource = false;
         isProjectResource = false;
         isFileShareResource = false;
+        isEmailResource = false;
     }
     public boolean isOrgResource() {
         return isOrgResource;
@@ -103,6 +104,7 @@ public class RoleResource extends AbstractEntity implements Comparable<RoleResou
         isOrgResource = orgResource;
         isProjectResource = false;
         isFileShareResource = false;
+        isEmailResource = false;
     }
 
     public boolean isProjectResource() {
@@ -113,6 +115,7 @@ public class RoleResource extends AbstractEntity implements Comparable<RoleResou
         isProjectResource = projectResource;
         isOrgResource = false;
         isFileShareResource = false;
+        isEmailResource = false;
     }
 
     public boolean isFileShareResource() {
@@ -121,6 +124,18 @@ public class RoleResource extends AbstractEntity implements Comparable<RoleResou
 
     public void setFileShareResource(boolean fileShareResource) {
         isFileShareResource = fileShareResource;
+        isOrgResource = false;
+        isProjectResource = false;
+        isEmailResource = false;
+    }
+
+    public boolean isEmailResource() {
+        return isEmailResource;
+    }
+
+    public void setEmailResource(boolean emailResource) {
+        isEmailResource = emailResource;
+        isFileShareResource = false;
         isOrgResource = false;
         isProjectResource = false;
     }

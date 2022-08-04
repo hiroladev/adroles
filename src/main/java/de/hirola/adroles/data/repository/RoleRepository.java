@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface RoleRepository extends JpaRepository<Role, Integer> {
 
@@ -28,11 +29,19 @@ public interface RoleRepository extends JpaRepository<Role, Integer> {
             "order by r.name")
     List<Role> searchProject(@Param("searchTerm") String searchTerm);
 
-    @Query("select r from Role r " +
-            "where lower(r.name) like lower(concat('%', :searchTerm, '%')) " +
-            "or lower(r.description) like lower(concat('%', :searchTerm, '%')) " +
+    @Query("select r from Role r, RoleResource rr " +
+            "where rr.isFileShareResource = true " +
+            "and (lower(r.name) like lower(concat('%', :searchTerm, '%')) " +
+            "or lower(r.description) like lower(concat('%', :searchTerm, '%'))) " +
             "order by r.name")
     List<Role> searchFileShare(@Param("searchTerm") String searchTerm);
+
+    @Query("select r from Role r, RoleResource rr " +
+            "where rr.isEmailResource = true " +
+            "and (lower(r.name) like lower(concat('%', :searchTerm, '%')) " +
+            "or lower(r.description) like lower(concat('%', :searchTerm, '%'))) " +
+            "order by r.name")
+    List<Role> searchMailResource(@Param("searchTerm") String searchTerm);
 
     List<Role> findByRoleResource_IsOrgResourceTrueOrderByNameAsc();
 
@@ -40,12 +49,18 @@ public interface RoleRepository extends JpaRepository<Role, Integer> {
 
     List<Role> findByRoleResource_IsFileShareResourceTrueOrderByNameAsc();
 
+    List<Role> findByRoleResource_IsEmailResourceTrueOrderByNameAsc();
+
     List<Role> findByPersons_Id(Integer id);
+
+    Optional<Role> findFirstByName(String name);
 
     long countByRoleResource_IsOrgResourceTrue();
 
     long countByRoleResource_IsProjectResourceTrue();
 
     long countByRoleResource_IsFileShareResourceTrue();
+
+    long countByRoleResource_IsEmailResourceTrue();
 
 }

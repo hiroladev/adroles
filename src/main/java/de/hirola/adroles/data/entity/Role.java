@@ -20,7 +20,7 @@ import java.util.Set;
  */
 
 @Entity
-public class Role extends AbstractEntity {
+public class Role extends AbstractEntity implements Comparable<Role> {
     @NotEmpty
     private String name;
     private String description;
@@ -197,5 +197,10 @@ public class Role extends AbstractEntity {
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), name);
+    }
+
+    @Override
+    public int compareTo(Role o) {
+        return name.compareTo(o.getName());
     }
 }

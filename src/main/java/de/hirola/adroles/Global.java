@@ -16,10 +16,17 @@ import java.time.ZoneId;
 
 public final class Global {
 
+    public enum LOGGING_VALUES {
+        ;
+        public static final String UNKNOWN_USER_STRING = "Unknown";
+    }
+
     public enum EMPLOYEE_DEFAULT_VALUES {
         ;
         public static final LocalDate ENTRY_DATE = LocalDate.now(ZoneId.systemDefault());
         public static final LocalDate EXIT_DATE = LocalDate.of(2100, 12, 31);
+
+        public static final LocalDate MIN_UPPER_DATE = LocalDate.ofYearDay(1991, 31);
     }
 
     public enum ROLE_RESOURCE {
@@ -28,7 +35,7 @@ public final class Global {
         public static final int ORG_ROLE = 1;
         public static final int PROJECT_ROLE = 2;
         public static final int FILE_SHARE_ROLE = 3;
-        public static final int DISTRIBUTION_LIST_ROLE = 4;
+        public static final int EMAIL_RESOURCE_ROLE = 4;
     }
 
     public enum IMPORT_SETTINGS {
@@ -37,6 +44,7 @@ public final class Global {
         public static final String ADMIN_GROUP_TEXT = "admin";
         public static final String PROJECT_ROLE_TEXT = "proj";
         public static final String FILE_SHARE_ROLE_TEXT = "share";
+        public static final String EMAIL_ROLE_TEXT = "mail";
     }
 
     public enum ADAttributes {
@@ -45,6 +53,7 @@ public final class Global {
         public static final String DISPLAY_NAME = "displayName";
         public static final String DESCRIPTION = "description";
         public static final String ACCOUNT_EXPIRES = "accountExpires";
+        public static final String SID = "objectSid";
     }
 
     public enum ADGroupArea {
@@ -63,6 +72,7 @@ public final class Global {
     // TODO: set by user?
     public enum Component {
         ;
+        public static final String DEFAULT_DIALOG_WIDTH = "350px";
         public static final String DEFAULT_BUTTON_WIDTH = "250px";
         public static final String DEFAULT_ICON_BUTTON_WIDTH = "100px";
         public static final String DEFAULT_TEXT_FIELD_WIDTH = "450px";

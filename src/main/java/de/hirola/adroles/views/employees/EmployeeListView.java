@@ -97,6 +97,7 @@ public class EmployeeListView extends VerticalLayout {
     private void updateList() {
         List<Person> filteredPersons = identityService.findAllEmployees(filterTextField.getValue());
         grid.setItems(filteredPersons);
+        grid.deselectAll();
         grid.getColumnByKey(Global.Component.FOOTER_COLUMN_KEY)
                 .setFooter(String.format(getTranslation("persons.sum") + ": %s", filteredPersons.size()));
     }

@@ -205,8 +205,8 @@ public class EmpoyeeForm extends VerticalLayout {
 
   private void updateList() {
       if (person != null) {
-        adUserGrid.setItems(person.getADUsers());
-        rolesGrid.setItems(person.getRoles());
+        adUserGrid.setItems(person.getADUsers().stream().sorted().toList());
+        rolesGrid.setItems(person.getRoles().stream().sorted().toList());
       }
   }
 
