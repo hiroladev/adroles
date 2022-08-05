@@ -18,6 +18,7 @@ import com.vaadin.flow.component.UI;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.*;
 import de.hirola.adroles.data.repository.*;
+import de.hirola.adroles.util.ServiceResult;
 import org.apache.directory.api.util.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nullable;
+import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotNull;
 import java.net.ConnectException;
 import java.nio.ByteBuffer;
@@ -42,7 +44,7 @@ import java.util.regex.Pattern;
 @Service
 public class IdentityService {
     private final Logger logger = LoggerFactory.getLogger(IdentityService.class);
-    private org.springframework.security.core.userdetails.User sessionUser;
+    private String sessionUserName;
     private Endpoint endpoint;
     private boolean isConnected;
     private ActiveDirectory activeDirectory;
@@ -66,6 +68,7 @@ public class IdentityService {
         this.roleResourceRepository = roleResourceRepository;
         this.adUserRepository = adUserRepository;
         this.adGroupRepository = adGroupRepository;
+        sessionUserName = Global.LOGGING_VALUES.UNKNOWN_USER_STRING;
         // we manage only one AD
         if (activeDirectoryRepository.count() == 1) {
             activeDirectory = activeDirectoryRepository.findAll().get(0);
@@ -73,6 +76,13 @@ public class IdentityService {
         } else {
             activeDirectory = new ActiveDirectory();
         }
+    }
+
+    public void setSessionUserName(String sessionUserName) {
+        if (sessionUserName == null) {
+            return;
+        }
+        this.sessionUserName = sessionUserName;
     }
 
     public @Nullable RoleResource getRoleResource(int type) {
@@ -342,6 +352,7 @@ public class IdentityService {
         }
         return roleRepository.count();
     }
+
     public long countPersons() {
         return personRepository.count();
     }
@@ -537,12 +548,12 @@ public class IdentityService {
         }
     }
 
-    public boolean assignPersonsToRoles(List<Person> persons) {
+    public ServiceResult assignPersonsToRoles(List<Person> persons) {
         try {
             int assignedPersonsCount = 0;
             int assignedRolesCount = 0;
             if (persons == null) {
-                return false;
+                return new ServiceResult(false, "The list of persons is empty.");
             }
             for (Person person : persons) {
                 // get managed AD users of person
@@ -569,25 +580,33 @@ public class IdentityService {
                     assignedPersonsCount++;
                 }
             }
-            logger.debug(assignedPersonsCount + " from " + persons.size() + " assigned to " + assignedRolesCount + " roles");
-            return true;
+            String resultMessage = assignedPersonsCount + " from " + persons.size() + " persons assigned to "
+                    + assignedRolesCount + " roles";
+            logger.debug(resultMessage);
+            return new ServiceResult(true, resultMessage);
         } catch (Exception exception) {
-            logger.debug("Error while assign persons to roles automatically.", exception);
-            return false;
+            String resultMessage = "Error while assign persons to roles automatically: " + exception.getMessage();
+            logger.debug(resultMessage, exception);
+            return new ServiceResult(false, resultMessage);
         }
     }
 
     @Transactional
-    public boolean updateRolesFromGroups() {
+    public ServiceResult updateRolesFromGroups() {
         try {
             if (adGroupRepository.count() == 0) {
-                logger.debug("Update roles from AD groups failed. There are AD groups in database. Please import from AD first.");
-                return false;
+                String resultMessage = "Update roles from AD groups failed. " +
+                        "There are AD groups in database. Please import from AD first.";
+                logger.debug(resultMessage);
+                return new ServiceResult(false, resultMessage);
             }
             int added = 0, updated = 0;
             List<ADGroup> adGroups = adGroupRepository.findAll();
             for (ADGroup adGroup: adGroups) {
                 String name = adGroup.getName();
+                if (name.isEmpty()) {
+                    System.out.println("jetzt");
+                }
                 Optional<Role> optionalRole = roleRepository.findFirstByName(name);
                 Role role;
                 if (optionalRole.isPresent()) {
@@ -602,20 +621,22 @@ public class IdentityService {
                 }
                 role.setDescription(adGroup.getDescription());
                 role.setAdminRole(isAdminByName(name));
-                role.addADGroup(adGroup);
                 adGroup.addRole(role); // many-to-many relationship
                 adGroupRepository.save(adGroup);
                 RoleResource roleResource = getRoleResourceByADGroup(adGroup);
                 if (roleResource != null) {
                     role.setRoleResource(roleResource);
                 }
+                role.addADGroup(adGroup);
                 roleRepository.save(role);
             }
-            addLogEntry(added + " roles added and " + updated + " roles updated from AD groups");
-            return true;
+            String resultMessage = added + " roles added and " + updated + " roles updated from AD groups";
+            addLogEntry(resultMessage);
+            return new ServiceResult(false, resultMessage);
         } catch (Exception exception) {
-            logger.debug("Update roles from AD groups failed.", exception);
-            return false;
+            String resultMessage = "Update roles from AD groups failed.";
+            logger.debug(resultMessage, exception);
+            return new ServiceResult(false, resultMessage);
         }
     }
 
@@ -808,6 +829,11 @@ public class IdentityService {
         for (ADGroup adGroup: adGroups) {
             deleteADGroupComplete(adGroup);
         }
+    }
+
+    @PostConstruct
+    void setGlobalSecurityContext() {
+        SecurityContextHolder.setStrategyName(SecurityContextHolder.MODE_INHERITABLETHREADLOCAL);
     }
 
     @Transactional
@@ -1404,21 +1430,6 @@ public class IdentityService {
     }
 
     private void addLogEntry(String message) {
-        // determine the actual user
-        if (sessionUser == null) {
-            try {
-                sessionUser = (org.springframework.security.core.userdetails.User) SecurityContextHolder
-                        .getContext().getAuthentication().getPrincipal();
-            } catch (Exception exception) {
-                logger.debug("Could not determine the logged in user.", exception);
-                sessionUser = null;
-            }
-        }
-        if (sessionUser != null) {
-            // TODO: logging
-            logger.debug("This action was triggered by \"" + sessionUser.getUsername() + "\": " + message);
-        } else {
-            logger.debug(message);
-        }
+        logger.debug("This action was triggered by \"" + sessionUserName + "\": " + message);
     }
 }

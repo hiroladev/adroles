@@ -138,7 +138,6 @@ public class ResourceListView extends VerticalLayout {
         roleForm.addListener(RoleForm.SaveEvent.class, this::saveResourceRole);
         roleForm.addListener(RoleForm.AssignPersonsEvent.class, this::addPersons);
         roleForm.addListener(RoleForm.AssignADGroupsEvent.class, this::addADGroups);
-        roleForm.addListener(RoleForm.DeleteEvent.class, this::deleteResourceRole);
         roleForm.addListener(RoleForm.CloseEvent.class, event -> closeRoleForm());
         roleForm.setVisible(false);
 
@@ -194,12 +193,6 @@ public class ResourceListView extends VerticalLayout {
 
         dialog.open();
 
-    }
-
-    private void deleteResourceRole(RoleForm.DeleteEvent event) {
-        identityService.deleteRole(event.getRole());
-        updateList();
-        closeRoleForm();
     }
 
     public void editResource(Role role) {

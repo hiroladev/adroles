@@ -59,19 +59,15 @@ public class ADGroupForm extends FormLayout {
     saveButton.addClickShortcut(Key.ENTER);
     saveButton.addClickListener(event -> validateAndSave());
 
-    Button deleteButton = new Button(getTranslation("delete"));
-    deleteButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
-    deleteButton.addClickListener(event -> fireEvent(new DeleteEvent(this, adGroup)));
-
     Button closeButton = new Button(getTranslation("cancel"));
     closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
     closeButton.addClickShortcut(Key.ESCAPE);
     closeButton.addClickListener(event -> fireEvent(new CloseEvent(this)));
 
-    HorizontalLayout buttonsLayout_1 = new HorizontalLayout(saveButton, deleteButton, closeButton);
-    buttonsLayout_1.setPadding(true);
+    HorizontalLayout buttonsLayout = new HorizontalLayout(saveButton, closeButton);
+    buttonsLayout.setPadding(true);
 
-    add(formsLayout, buttonsLayout_1);
+    add(formsLayout, buttonsLayout);
   }
 
   public void setAdGroup(ADGroup adGroup) {
@@ -140,10 +136,10 @@ public class ADGroupForm extends FormLayout {
   }
 
   // Events
-  public static abstract class ADUserFormEvent extends ComponentEvent<ADGroupForm> {
+  public static abstract class ADUGroupFormEvent extends ComponentEvent<ADGroupForm> {
     private final ADGroup adGroup;
 
-    protected ADUserFormEvent(ADGroupForm source, ADGroup adGroup) {
+    protected ADUGroupFormEvent(ADGroupForm source, ADGroup adGroup) {
       super(source, false);
       this.adGroup = adGroup;
     }
@@ -153,20 +149,13 @@ public class ADGroupForm extends FormLayout {
     }
   }
 
-  public static class SaveEvent extends ADUserFormEvent {
+  public static class SaveEvent extends ADUGroupFormEvent {
     SaveEvent(ADGroupForm source, ADGroup adGroup) {
       super(source, adGroup);
     }
   }
 
-  public static class DeleteEvent extends ADUserFormEvent {
-    DeleteEvent(ADGroupForm source, ADGroup adGroup) {
-      super(source, adGroup);
-    }
-
-  }
-
-  public static class CloseEvent extends ADUserFormEvent {
+  public static class CloseEvent extends ADUGroupFormEvent {
     CloseEvent(ADGroupForm source) {
       super(source, null);
     }

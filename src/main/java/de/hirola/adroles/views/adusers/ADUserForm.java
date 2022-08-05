@@ -49,19 +49,15 @@ public class ADUserForm extends FormLayout {
     saveButton.addClickShortcut(Key.ENTER);
     saveButton.addClickListener(event -> validateAndSave());
 
-    Button deleteButton = new Button(getTranslation("delete"));
-    deleteButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
-    deleteButton.addClickListener(event -> fireEvent(new DeleteEvent(this, adUser)));
-
     Button closeButton = new Button(getTranslation("cancel"));
     closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
     closeButton.addClickShortcut(Key.ESCAPE);
     closeButton.addClickListener(event -> fireEvent(new CloseEvent(this)));
 
-    HorizontalLayout buttonsLayout_1 = new HorizontalLayout(saveButton, deleteButton, closeButton);
-    buttonsLayout_1.setPadding(true);
+    HorizontalLayout buttonsLayout = new HorizontalLayout(saveButton, closeButton);
+    buttonsLayout.setPadding(true);
 
-    add(formsLayout, buttonsLayout_1);
+    add(formsLayout, buttonsLayout);
   }
 
   public void setAdUser(ADUser adUser) {
@@ -109,13 +105,6 @@ public class ADUserForm extends FormLayout {
     SaveEvent(ADUserForm source, ADUser adUser) {
       super(source, adUser);
     }
-  }
-
-  public static class DeleteEvent extends ADUserFormEvent {
-    DeleteEvent(ADUserForm source,  ADUser adUser) {
-      super(source, adUser);
-    }
-
   }
 
   public static class CloseEvent extends ADUserFormEvent {

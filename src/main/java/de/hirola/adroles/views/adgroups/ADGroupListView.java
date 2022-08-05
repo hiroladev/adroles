@@ -104,7 +104,6 @@ public class ADGroupListView extends VerticalLayout {
         adGroupForm = new ADGroupForm();
         adGroupForm.setWidthFull();
         adGroupForm.addListener(ADGroupForm.SaveEvent.class, this::saveADGroup);
-        adGroupForm.addListener(ADGroupForm.DeleteEvent.class, this::deleteADGroup);
         adGroupForm.addListener(ADGroupForm.CloseEvent.class, event -> closeADGroupForm());
 
         assignRoleForm = new PersonAssignRoleForm();
@@ -179,12 +178,6 @@ public class ADGroupListView extends VerticalLayout {
             adGroupForm.setVisible(true);
             addClassName("editing");
         }
-    }
-
-    private void deleteADGroup(ADGroupForm.DeleteEvent event) {
-        identityService.deleteADGroup(event.getAdGroup());
-        updateList();
-        closeADGroupForm();
     }
 
     private void deleteADGroups() {

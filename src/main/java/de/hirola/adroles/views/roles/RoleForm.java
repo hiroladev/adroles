@@ -137,16 +137,12 @@ public class RoleForm extends VerticalLayout {
     saveButton.addClickShortcut(Key.ENTER);
     saveButton.addClickListener(event -> validateAndSave());
 
-    Button deleteButton = new Button(getTranslation("delete"));
-    deleteButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_ERROR);
-    deleteButton.addClickListener(event -> fireEvent(new DeleteEvent(this, role)));
-
     Button closeButton = new Button(getTranslation("cancel"));
     closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
     closeButton.addClickShortcut(Key.ESCAPE);
     closeButton.addClickListener(event -> fireEvent(new CloseEvent(this)));
 
-    HorizontalLayout buttonsLayout = new HorizontalLayout(saveButton, deleteButton, closeButton);
+    HorizontalLayout buttonsLayout = new HorizontalLayout(saveButton, closeButton);
     buttonsLayout.setPadding(true);
 
     add(buttonsLayout);
@@ -223,13 +219,6 @@ public class RoleForm extends VerticalLayout {
     AssignADGroupsEvent(RoleForm source, Role role) {
       super(source, role);
     }
-  }
-
-  public static class DeleteEvent extends ResourceRoleFormEvent {
-    DeleteEvent(RoleForm source, Role role) {
-      super(source, role);
-    }
-
   }
 
   public static class CloseEvent extends ResourceRoleFormEvent {

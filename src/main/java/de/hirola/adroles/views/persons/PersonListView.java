@@ -5,10 +5,12 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.textfield.TextArea;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Person;
 import de.hirola.adroles.service.IdentityService;
+import de.hirola.adroles.util.ServiceResult;
 import de.hirola.adroles.views.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
@@ -20,15 +22,23 @@ import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.PageTitle;
 import de.hirola.adroles.views.NotificationPopUp;
+import de.hirola.adroles.views.ProgressModalDialog;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.annotation.security.PermitAll;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Route(value="persons", layout = MainLayout.class)
 @PageTitle("Persons | AD-Roles")
 @PermitAll
 public class PersonListView extends VerticalLayout {
+
+    private final Logger logger = LoggerFactory.getLogger(PersonListView.class);
     private final IdentityService identityService;
     private final List<Person> selectedPersons = new ArrayList<>();
     private PersonForm personForm;
@@ -39,6 +49,12 @@ public class PersonListView extends VerticalLayout {
 
     public PersonListView(IdentityService identityService) {
         this.identityService = identityService;
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            identityService.setSessionUserName(authentication.getName());
+        } catch (Exception exception) {
+            logger.debug("Could not determine currently user.", exception);
+        }
         addClassName("persons-list-view");
         setSizeFull();
         addComponents();
@@ -119,7 +135,6 @@ public class PersonListView extends VerticalLayout {
         personForm.addListener(PersonForm.SaveEvent.class, this::savePerson);
         personForm.addListener(PersonForm.AssignRolesEvent.class, this::addRoles);
         personForm.addListener(PersonForm.AssignOrgEvent.class, this::addOrgRoles);
-        personForm.addListener(PersonForm.DeleteEvent.class, this::deletePerson);
         personForm.addListener(PersonAssignRoleForm.CloseEvent.class, this::closeAssignRolesForm);
         personForm.addListener(PersonForm.CloseEvent.class, event -> closePersonForm());
         personForm.setVisible(false);
@@ -182,6 +197,7 @@ public class PersonListView extends VerticalLayout {
     }
 
     private void assignRoles() {
+
         Dialog dialog = new Dialog();
         dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
         if (selectedPersons.size() > 0) {
@@ -192,16 +208,42 @@ public class PersonListView extends VerticalLayout {
             messageArea.setValue(getTranslation("assignPersonsToRoles.dialog.message"));
 
             Button okButton = new Button("Ok", clickEvent -> {
+                new Thread(() -> {
+                    AtomicReference<ProgressModalDialog> notification = new AtomicReference<>();
+                    getUI().ifPresent(ui -> ui.access(() -> {
+                        ProgressModalDialog progressModalDialog = new ProgressModalDialog(
+                                "update",
+                                "import.running.message",
+                                "import.running.subMessage");
+                        notification.set(progressModalDialog);
+                        notification.get().open();
+                    }));
+
+                    ServiceResult serviceResult = identityService.assignPersonsToRoles(selectedPersons);
+                    if (serviceResult.operationSuccessful) {
+                        getUI().ifPresent(ui -> ui.access(() -> notification.get().close()));
+                        getUI().ifPresent(ui -> ui.access(() -> {
+                            NotificationPopUp.show(NotificationPopUp.INFO,
+                                getTranslation("import.successful"), serviceResult.resultMessage);
+                            updateList();
+                        }));
+                    } else {
+                        getUI().ifPresent(ui -> ui.access(() -> notification.get().close()));
+                        getUI().ifPresent(ui -> ui.access(() -> {
+                            NotificationPopUp.show(NotificationPopUp.ERROR,
+                                getTranslation("error.import"), serviceResult.resultMessage);
+                            updateList();
+                        }));
+                    }
+                }).start();
                 dialog.close();
-                if (!identityService.assignPersonsToRoles(selectedPersons)) {
-                    NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.assign"));
-                }
-                updateList();
             });
             okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
             okButton.getStyle().set("margin-right", "auto");
 
-            Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
+            Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> {
+                dialog.close();
+            });
             cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
             dialog.add(messageArea);
@@ -231,7 +273,7 @@ public class PersonListView extends VerticalLayout {
         updateList();
     }
 
-    public void editPerson(Person person) {
+    private void editPerson(Person person) {
         if (person == null) {
             closePersonForm();
         } else {
@@ -240,12 +282,6 @@ public class PersonListView extends VerticalLayout {
             personForm.setVisible(true);
             addClassName("editing");
         }
-    }
-
-    private void deletePerson(PersonForm.DeleteEvent event) {
-        identityService.deletePerson(event.getPerson());
-        updateList();
-        closePersonForm();
     }
 
     private void deletePersons() {

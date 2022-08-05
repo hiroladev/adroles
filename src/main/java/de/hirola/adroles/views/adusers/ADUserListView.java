@@ -123,7 +123,6 @@ public class ADUserListView extends VerticalLayout {
         adUserForm = new ADUserForm();
         adUserForm.setWidthFull();
         adUserForm.addListener(ADUserForm.SaveEvent.class, this::saveADUser);
-        adUserForm.addListener(ADUserForm.DeleteEvent.class, this::deleteADuser);
         adUserForm.addListener(ADUserForm.CloseEvent.class, event -> closeADUserForm());
 
         assignRoleForm = new PersonAssignRoleForm();
@@ -198,12 +197,6 @@ public class ADUserListView extends VerticalLayout {
             adUserForm.setVisible(true);
             addClassName("editing");
         }
-    }
-
-    private void deleteADuser(ADUserForm.DeleteEvent event) {
-        identityService.deleteADUser(event.getAdUser());
-        updateList();
-        closeADUserForm();
     }
 
     private void deleteADUsers() {

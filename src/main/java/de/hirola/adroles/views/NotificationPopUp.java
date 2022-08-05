@@ -18,18 +18,21 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.progressbar.ProgressBar;
 
 public enum NotificationPopUp {
     ;
-
     public static final int INFO = 0;
     public static final int ERROR = 1;
 
     public static void show(int mode, String message) {
-        Notification notification;
+        final Notification notification = new Notification();
         if (mode == NotificationPopUp.ERROR) {
-            notification = new Notification();
+            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+
             Div text = new Div(new Text(message));
+
             Button closeButton = new Button(new Icon("lumo", "cross"));
             closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
             closeButton.getElement().setAttribute("aria-label", UI.getCurrent().getTranslation("close"));
@@ -37,39 +40,35 @@ public enum NotificationPopUp {
 
             HorizontalLayout layout = new HorizontalLayout(text, closeButton);
             layout.setAlignItems(FlexComponent.Alignment.CENTER);
-
             notification.add(layout);
-            closeButton.getElement().setAttribute("aria-label", "Close");
-            closeButton.addClickListener(event -> notification.close());
-            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+
         } else {
-            notification = Notification.show(message);
             notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            notification.setText(message);
         }
         notification.setPosition(Notification.Position.MIDDLE);
         notification.open();
     }
 
-    public static void show(int mode, String message, String errorMessage) {
-        Notification notification;
+    public static void show(int mode, String message, String subMessage) {
+        final Notification notification = new Notification();
+
+        Div text = new Div(new Text(message));
+        Div subText = new Div(new Text(subMessage));
+
+        Button closeButton = new Button(new Icon("lumo", "cross"));
+        closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+        closeButton.getElement().setAttribute("aria-label", UI.getCurrent().getTranslation("close"));
+        closeButton.addClickListener(event -> notification.close());
+
+        VerticalLayout textLayout = new VerticalLayout(text, subText);
+        textLayout.setAlignItems(FlexComponent.Alignment.CENTER);
+        HorizontalLayout layout = new HorizontalLayout(textLayout, closeButton);
+        notification.add(layout);
+
         if (mode == NotificationPopUp.ERROR) {
-            notification = new Notification();
-            Div text = new Div(new Text(message));
-            Div errorText = new Div(new Text(errorMessage));
-            Button closeButton = new Button(new Icon("lumo", "cross"));
-            closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
-            closeButton.getElement().setAttribute("aria-label", UI.getCurrent().getTranslation("close"));
-            closeButton.addClickListener(event -> notification.close());
-
-            HorizontalLayout layout = new HorizontalLayout(text, errorText, closeButton);
-            layout.setAlignItems(FlexComponent.Alignment.CENTER);
-
-            notification.add(layout);
-            closeButton.getElement().setAttribute("aria-label", "Close");
-            closeButton.addClickListener(event -> notification.close());
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
         } else {
-            notification = Notification.show(message);
             notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
         }
         notification.setPosition(Notification.Position.MIDDLE);

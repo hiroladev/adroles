@@ -5,12 +5,14 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.QuerySortOrder;
@@ -22,13 +24,16 @@ import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Role;
 import de.hirola.adroles.data.entity.RoleResource;
 import de.hirola.adroles.service.IdentityService;
+import de.hirola.adroles.util.ServiceResult;
 import de.hirola.adroles.views.MainLayout;
 import de.hirola.adroles.views.NotificationPopUp;
+import de.hirola.adroles.views.ProgressModalDialog;
 
 import javax.annotation.security.PermitAll;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 @Route(value="roles", layout = MainLayout.class)
@@ -154,7 +159,6 @@ public class RolesListView extends VerticalLayout {
         roleForm.addListener(RoleForm.AssignPersonsEvent.class, this::assignPersons);
         roleForm.addListener(RoleForm.AssignADUsersEvent.class, this::assignADUsers);
         roleForm.addListener(RoleForm.AssignADGroupsEvent.class, this::assignADGroups);
-        roleForm.addListener(RoleForm.DeleteEvent.class, this::deleteRole);
         roleForm.addListener(RoleForm.CloseEvent.class, event -> closeRoleForm());
         roleForm.setVisible(false);
 
@@ -206,11 +210,35 @@ public class RolesListView extends VerticalLayout {
             messageArea.setValue(getTranslation("updateRolesFromGroups.dialog.message"));
 
             Button okButton = new Button("Ok", clickEvent -> {
+                new Thread(() -> {
+                    AtomicReference<ProgressModalDialog> notification = new AtomicReference<>();
+                    getUI().ifPresent(ui -> ui.access(() -> {
+                        ProgressModalDialog progressModalDialog = new ProgressModalDialog(
+                                "update",
+                                "import.running.message",
+                                "import.running.subMessage");
+                        notification.set(progressModalDialog);
+                        notification.get().open();
+                    }));
+
+                    ServiceResult serviceResult = identityService.updateRolesFromGroups();
+                    if (serviceResult.operationSuccessful) {
+                        getUI().ifPresent(ui -> ui.access(() -> notification.get().close()));
+                        getUI().ifPresent(ui -> ui.access(() -> {
+                            NotificationPopUp.show(NotificationPopUp.INFO,
+                                    getTranslation("import.successful"), serviceResult.resultMessage);
+                            updateList();
+                        }));
+                    } else {
+                        getUI().ifPresent(ui -> ui.access(() -> notification.get().close()));
+                        getUI().ifPresent(ui -> ui.access(() -> {
+                            NotificationPopUp.show(NotificationPopUp.ERROR,
+                                    getTranslation("error.import"), serviceResult.resultMessage);
+                            updateList();
+                        }));
+                    }
+                }).start();
                 dialog.close();
-                if (!identityService.updateRolesFromGroups()) {
-                    NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
-                }
-                updateList();
             });
             okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
             okButton.getStyle().set("margin-right", "auto");
@@ -224,11 +252,28 @@ public class RolesListView extends VerticalLayout {
 
             dialog.open();
         } else {
-            dialog.close();
-            if (!identityService.updateRolesFromGroups()) {
-                NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
+            ProgressBar progressBar = new ProgressBar();
+            progressBar.setIndeterminate(true);
+            Div progressBarLabel = new Div();
+            progressBarLabel.setText("Generating report, please wait...");
+            Div progressBarSubLabel = new Div();
+            progressBarSubLabel.getStyle().set("font-size", "var(--lumo-font-size-xs)");
+            progressBarSubLabel.setText("Process can take upwards of 10 minutes");
+            add(progressBarLabel, progressBar, progressBarSubLabel);
+
+            ServiceResult serviceResult = identityService.updateRolesFromGroups();
+
+            if (serviceResult.operationSuccessful) {
+                progressBar.setVisible(false);
+                NotificationPopUp.show(NotificationPopUp.INFO,
+                        getTranslation("import.successful"), serviceResult.resultMessage);
+            } else {
+                progressBar.setVisible(false);
+                NotificationPopUp.show(NotificationPopUp.ERROR,
+                        getTranslation("error.import"), serviceResult.resultMessage);
             }
             updateList();
+            dialog.close();
         }
     }
 
@@ -255,12 +300,6 @@ public class RolesListView extends VerticalLayout {
             roleForm.setVisible(true);
             addClassName("editing");
         }
-    }
-
-    private void deleteRole(RoleForm.DeleteEvent event) {
-        identityService.deleteRole(event.getRole());
-        updateList();
-        closeRoleForm();
     }
 
     private void deleteRoles() {
