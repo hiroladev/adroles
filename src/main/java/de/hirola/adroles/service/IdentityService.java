@@ -30,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Nullable;
 import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotNull;
-import java.net.ConnectException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.text.SimpleDateFormat;
@@ -45,7 +44,7 @@ import java.util.regex.Pattern;
 public class IdentityService {
     private final Logger logger = LoggerFactory.getLogger(IdentityService.class);
     private String sessionUserName;
-    private Endpoint endpoint;
+    private final Endpoint endpoint = new Endpoint();
     private boolean isConnected;
     private ActiveDirectory activeDirectory;
     private final ActiveDirectoryRepository activeDirectoryRepository;
@@ -222,8 +221,7 @@ public class IdentityService {
         }
     }
 
-    public void verifyConnection(@NotNull ActiveDirectory activeDirectory)
-            throws ConnectException {
+    public ServiceResult verifyConnection(@NotNull ActiveDirectory activeDirectory) {
         endpoint.setSecuredConnection(activeDirectory.useSecureConnection());
         endpoint.setPort((int) activeDirectory.getPort());
         endpoint.setHost(activeDirectory.getIPAddress());
@@ -231,10 +229,18 @@ public class IdentityService {
         // decrypt password
         endpoint.setPassword(activeDirectory.getEncryptedConnectionPassword());
         final ConnectionResponse connectionResponse = DirectoryConnectorService.authenticate(endpoint);
-        if (connectionResponse.isError()) {
-            Map<String, Status> statuses = connectionResponse.getStatuses();
-            throw new ConnectException(statuses.keySet().toString());
+        Map<String, Status> statuses = connectionResponse.getStatuses();
+        StringBuilder resultMessage = new StringBuilder();
+        for(Status status: statuses.values()) {
+            resultMessage.append(status.getMessage());
         }
+        if (connectionResponse.isError()) {
+            logger.debug(resultMessage.toString());
+            return new ServiceResult(false, resultMessage.toString());
+        } else {
+            return new ServiceResult(true, resultMessage.toString());
+        }
+
     }
 
     public boolean isConnected() {
@@ -243,7 +249,8 @@ public class IdentityService {
 
     public List<Person> findAllPersons(@Nullable String stringFilter) {
         if (stringFilter == null || stringFilter.isEmpty()) {
-            return personRepository.findAll(Sort.by(Sort.Direction.ASC, "lastName"));
+            Sort.Order order = new Sort.Order(Sort.Direction.ASC, "lastName").ignoreCase();
+            return personRepository.findAll(Sort.by(order));
         } else {
             return personRepository.search(stringFilter);
         }
@@ -259,7 +266,8 @@ public class IdentityService {
 
     public List<Person> findAllPersonsWithDepartmentName(String departmentName) {
         if (departmentName == null || departmentName.isEmpty()) {
-            return personRepository.findAll();
+            Sort.Order order = new Sort.Order(Sort.Direction.ASC, "lastName").ignoreCase();
+            return personRepository.findAll(Sort.by(order));
         } else {
             return personRepository.findByDepartmentNameOrderByLastNameAsc(departmentName);
         }
@@ -292,12 +300,13 @@ public class IdentityService {
         if (stringFilter != null && !stringFilter.isEmpty()) {
             return roleRepository.search(stringFilter);
         }
-        return roleRepository.findAll();
+        Sort.Order order = new Sort.Order(Sort.Direction.ASC, "name").ignoreCase();
+        return roleRepository.findAll(Sort.by(order));
     }
 
     public List<ADUser> findAllADUsers(@Nullable String value) {
         if (value == null || value.isEmpty()) {
-            return adUserRepository.findAll();
+            return adUserRepository.findAll(Sort.by(Sort.Direction.ASC, "logonName"));
         } else {
             return adUserRepository.search(value);
         }
@@ -309,7 +318,7 @@ public class IdentityService {
 
     public List<ADGroup> findAllADGroups(@Nullable String value) {
         if (value == null || value.isEmpty()) {
-            return adGroupRepository.findAll();
+            return adGroupRepository.findAll(Sort.by(Sort.Direction.ASC, "name"));
         } else {
             return adGroupRepository.search(value);
         }
@@ -604,9 +613,6 @@ public class IdentityService {
             List<ADGroup> adGroups = adGroupRepository.findAll();
             for (ADGroup adGroup: adGroups) {
                 String name = adGroup.getName();
-                if (name.isEmpty()) {
-                    System.out.println("jetzt");
-                }
                 Optional<Role> optionalRole = roleRepository.findFirstByName(name);
                 Role role;
                 if (optionalRole.isPresent()) {
@@ -621,18 +627,18 @@ public class IdentityService {
                 }
                 role.setDescription(adGroup.getDescription());
                 role.setAdminRole(isAdminByName(name));
-                adGroup.addRole(role); // many-to-many relationship
-                adGroupRepository.save(adGroup);
                 RoleResource roleResource = getRoleResourceByADGroup(adGroup);
                 if (roleResource != null) {
                     role.setRoleResource(roleResource);
                 }
                 role.addADGroup(adGroup);
                 roleRepository.save(role);
+                adGroup.addRole(role); // many-to-many relationship
+                adGroupRepository.save(adGroup);
             }
             String resultMessage = added + " roles added and " + updated + " roles updated from AD groups";
             addLogEntry(resultMessage);
-            return new ServiceResult(false, resultMessage);
+            return new ServiceResult(true, resultMessage);
         } catch (Exception exception) {
             String resultMessage = "Update roles from AD groups failed.";
             logger.debug(resultMessage, exception);
@@ -921,7 +927,6 @@ public class IdentityService {
             queryRequest.setSizeLimit(1000); //TODO: read from config
             queryRequest.setTimeLimit(1000); //TODO: read from config
             // try to connect - add all valid endpoints to the query request
-            endpoint = new Endpoint();
             endpoint.setSecuredConnection(activeDirectory.useSecureConnection());
             endpoint.setPort((int) activeDirectory.getPort());
             endpoint.setHost(activeDirectory.getIPAddress());
@@ -1275,6 +1280,7 @@ public class IdentityService {
                     // attribute can be changed
                     person.setFirstName(updatedPerson.getFirstName());
                     person.setLastName(updatedPerson.getLastName());
+                    person.setDepartmentName(updatedPerson.getDepartmentName());
                     person.setEmailAddress(updatedPerson.getEmailAddress());
                     person.setPhoneNumber(updatedPerson.getPhoneNumber());
                     person.setMobilePhoneNumber(updatedPerson.getMobilePhoneNumber());

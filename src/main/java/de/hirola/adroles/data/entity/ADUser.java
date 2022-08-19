@@ -7,6 +7,7 @@ import javax.validation.constraints.NotEmpty;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
@@ -28,7 +29,7 @@ public class ADUser extends AbstractEntity implements Comparable<ADUser> {
     @NotEmpty
     private String distinguishedName;
     @NotEmpty
-    private String objectSID; // SID does never change
+    private String objectSID = UUID.randomUUID().toString(); // SID does never change
     private boolean enabled;
     private boolean passwordExpires;
 

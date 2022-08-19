@@ -5,14 +5,12 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
-import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.QuerySortOrder;
@@ -41,9 +39,9 @@ import java.util.stream.Stream;
 @PermitAll
 public class RolesListView extends VerticalLayout {
     private final Hashtable<String, RoleResource> roleResourceList = new Hashtable<>();
+    private RoleContextMenu contextMenu;
     private RoleForm roleForm;
     private RoleAssignPersonForm assignPersonForm;
-
     private RoleAssignADUserForm assignADUserForm;
     private RoleAssignADGroupForm assignADGroupForm;
     private final List<Role> selectedRoles = new ArrayList<>();
@@ -147,9 +145,11 @@ public class RolesListView extends VerticalLayout {
             selectedRoles.clear();
             if (selection.getAllSelectedItems().size() == 0) {
                 deleteRolesButton.setEnabled(false);
+                contextMenu.setEnabled(false);
             } else {
                 selectedRoles.addAll(selection.getAllSelectedItems());
                 deleteRolesButton.setEnabled(true);
+                contextMenu.setEnabled(true);
             }
         });
 
@@ -181,7 +181,8 @@ public class RolesListView extends VerticalLayout {
         assignADGroupForm.setVisible(false);
 
         // context menu to change the role resource of selected roles
-        RoleContextMenu contextMenu = new RoleContextMenu(grid, this);
+        contextMenu = new RoleContextMenu(grid, this);
+        contextMenu.setEnabled(false);
 
         FlexLayout content = new FlexLayout(grid, contextMenu, roleForm,
                 assignPersonForm, assignADUserForm, assignADGroupForm);
@@ -201,80 +202,54 @@ public class RolesListView extends VerticalLayout {
     private void importRolesFromGroups() {
         Dialog dialog = new Dialog();
         dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
-        if (identityService.countRoles(roleResourceList.get(getTranslation("org"))) > 0) {
-            // data can be override
-            dialog.setHeaderTitle(getTranslation("question.updateData"));
+        dialog.setHeaderTitle(getTranslation("question.updateData"));
 
-            TextArea messageArea = new TextArea();
-            messageArea.setWidthFull();
-            messageArea.setValue(getTranslation("updateRolesFromGroups.dialog.message"));
+        TextArea messageArea = new TextArea();
+        messageArea.setWidthFull();
+        messageArea.setValue(getTranslation("updateRolesFromGroups.dialog.message"));
 
-            Button okButton = new Button("Ok", clickEvent -> {
-                new Thread(() -> {
-                    AtomicReference<ProgressModalDialog> notification = new AtomicReference<>();
+        Button okButton = new Button("Ok", clickEvent -> {
+            new Thread(() -> {
+                AtomicReference<ProgressModalDialog> notification = new AtomicReference<>();
+                getUI().ifPresent(ui -> ui.access(() -> {
+                    ProgressModalDialog progressModalDialog = new ProgressModalDialog(
+                            "update",
+                            "import.running.message",
+                            "import.running.subMessage");
+                    notification.set(progressModalDialog);
+                    notification.get().open();
+                }));
+
+                ServiceResult serviceResult = identityService.updateRolesFromGroups();
+                if (serviceResult.operationSuccessful) {
+                    getUI().ifPresent(ui -> ui.access(() -> notification.get().close()));
                     getUI().ifPresent(ui -> ui.access(() -> {
-                        ProgressModalDialog progressModalDialog = new ProgressModalDialog(
-                                "update",
-                                "import.running.message",
-                                "import.running.subMessage");
-                        notification.set(progressModalDialog);
-                        notification.get().open();
+                        NotificationPopUp.show(NotificationPopUp.INFO,
+                                getTranslation("import.successful"), serviceResult.resultMessage);
+                        updateList();
                     }));
-
-                    ServiceResult serviceResult = identityService.updateRolesFromGroups();
-                    if (serviceResult.operationSuccessful) {
-                        getUI().ifPresent(ui -> ui.access(() -> notification.get().close()));
-                        getUI().ifPresent(ui -> ui.access(() -> {
-                            NotificationPopUp.show(NotificationPopUp.INFO,
-                                    getTranslation("import.successful"), serviceResult.resultMessage);
-                            updateList();
-                        }));
-                    } else {
-                        getUI().ifPresent(ui -> ui.access(() -> notification.get().close()));
-                        getUI().ifPresent(ui -> ui.access(() -> {
-                            NotificationPopUp.show(NotificationPopUp.ERROR,
-                                    getTranslation("error.import"), serviceResult.resultMessage);
-                            updateList();
-                        }));
-                    }
-                }).start();
-                dialog.close();
-            });
-            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-            okButton.getStyle().set("margin-right", "auto");
-
-            Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
-            cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-            dialog.add(messageArea);
-            dialog.getFooter().add(okButton);
-            dialog.getFooter().add(cancelButton);
-
-            dialog.open();
-        } else {
-            ProgressBar progressBar = new ProgressBar();
-            progressBar.setIndeterminate(true);
-            Div progressBarLabel = new Div();
-            progressBarLabel.setText("Generating report, please wait...");
-            Div progressBarSubLabel = new Div();
-            progressBarSubLabel.getStyle().set("font-size", "var(--lumo-font-size-xs)");
-            progressBarSubLabel.setText("Process can take upwards of 10 minutes");
-            add(progressBarLabel, progressBar, progressBarSubLabel);
-
-            ServiceResult serviceResult = identityService.updateRolesFromGroups();
-
-            if (serviceResult.operationSuccessful) {
-                progressBar.setVisible(false);
-                NotificationPopUp.show(NotificationPopUp.INFO,
-                        getTranslation("import.successful"), serviceResult.resultMessage);
-            } else {
-                progressBar.setVisible(false);
-                NotificationPopUp.show(NotificationPopUp.ERROR,
-                        getTranslation("error.import"), serviceResult.resultMessage);
-            }
-            updateList();
+                } else {
+                    getUI().ifPresent(ui -> ui.access(() -> notification.get().close()));
+                    getUI().ifPresent(ui -> ui.access(() -> {
+                        NotificationPopUp.show(NotificationPopUp.ERROR,
+                                getTranslation("error.import"), serviceResult.resultMessage);
+                        updateList();
+                    }));
+                }
+            }).start();
             dialog.close();
-        }
+        });
+        okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+        okButton.getStyle().set("margin-right", "auto");
+
+        Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
+        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        dialog.add(messageArea);
+        dialog.getFooter().add(okButton);
+        dialog.getFooter().add(cancelButton);
+
+        dialog.open();
     }
 
     private void importRolesFromJSON() {

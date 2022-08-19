@@ -5,7 +5,6 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.textfield.TextArea;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Person;
@@ -42,6 +41,7 @@ public class PersonListView extends VerticalLayout {
     private final IdentityService identityService;
     private final List<Person> selectedPersons = new ArrayList<>();
     private PersonForm personForm;
+    private PersonAssignADUserForm assignADUserForm;
     private PersonAssignRoleForm assignRoleForm;
     private final Grid<Person> grid = new Grid<>(Person.class, false);
     private TextField filterTextField;
@@ -133,11 +133,18 @@ public class PersonListView extends VerticalLayout {
         personForm = new PersonForm();
         personForm.setWidthFull();
         personForm.addListener(PersonForm.SaveEvent.class, this::savePerson);
-        personForm.addListener(PersonForm.AssignRolesEvent.class, this::addRoles);
-        personForm.addListener(PersonForm.AssignOrgEvent.class, this::addOrgRoles);
+        personForm.addListener(PersonForm.AssignADUsersEvent.class, this::assignADUsers);
+        personForm.addListener(PersonForm.AssignRolesEvent.class, this::assignRoles);
+        personForm.addListener(PersonForm.AssignOrgEvent.class, this::assignOrgRoles);
         personForm.addListener(PersonAssignRoleForm.CloseEvent.class, this::closeAssignRolesForm);
         personForm.addListener(PersonForm.CloseEvent.class, event -> closePersonForm());
         personForm.setVisible(false);
+
+        assignADUserForm = new PersonAssignADUserForm(identityService);
+        assignADUserForm.setWidthFull();
+        assignADUserForm.addListener(PersonAssignADUserForm.SaveEvent.class, this::saveAssignedADUsers);
+        assignADUserForm.addListener(PersonAssignADUserForm.CloseEvent.class, event -> closeAssignADUsersForm(event.getPerson()));
+        assignADUserForm.setVisible(false);
 
         assignRoleForm = new PersonAssignRoleForm();
         assignRoleForm.setWidthFull();
@@ -148,16 +155,16 @@ public class PersonListView extends VerticalLayout {
         // context menu to change the role resource of selected roles
         PersonContextMenu contextMenu = new PersonContextMenu(grid, this);
 
-        FlexLayout content = new FlexLayout(grid, contextMenu, personForm, assignRoleForm);
+        FlexLayout content = new FlexLayout(grid, contextMenu, personForm, assignADUserForm, assignRoleForm);
         content.setFlexGrow(2, grid);
-        content.setFlexGrow(1, personForm, assignRoleForm);
-        content.setFlexShrink(0, personForm, assignRoleForm);
+        content.setFlexGrow(1, personForm, assignADUserForm, assignRoleForm);
+        content.setFlexShrink(0, personForm, assignADUserForm, assignRoleForm);
         content.addClassNames("content", "gap-m");
         content.setSizeFull();
 
         add(toolbar, content);
     }
-
+    
     private void importPersons() {
         Dialog dialog = new Dialog();
         dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
@@ -196,8 +203,25 @@ public class PersonListView extends VerticalLayout {
         }
     }
 
-    private void assignRoles() {
+    private void assignADUsers(PersonForm.AssignADUsersEvent event) {
+        closePersonForm();
+        enableComponents(false);
+        assignADUserForm.setData(event.getPerson(), identityService.findAllADUsers(null));
+        assignADUserForm.setVisible(true);
+        addClassName("editing-assign-ad-users-form");
+    }
 
+    private void saveAssignedADUsers(PersonAssignADUserForm.SaveEvent event) {
+        Person person = event.getPerson();
+        if (identityService.savePerson(person)) {
+            closeAssignADUsersForm(person);
+            updateList();
+        } else {
+            NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.save"));
+        }
+    }
+
+    private void assignRoles() {
         Dialog dialog = new Dialog();
         dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
         if (selectedPersons.size() > 0) {
@@ -241,9 +265,7 @@ public class PersonListView extends VerticalLayout {
             okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
             okButton.getStyle().set("margin-right", "auto");
 
-            Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> {
-                dialog.close();
-            });
+            Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
             cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
             dialog.add(messageArea);
@@ -311,7 +333,7 @@ public class PersonListView extends VerticalLayout {
 
     }
 
-    private void addRoles(PersonForm.AssignRolesEvent event) {
+    private void assignRoles(PersonForm.AssignRolesEvent event) {
         closePersonForm();
         enableComponents(false);
         assignRoleForm.setVisible(true);
@@ -320,7 +342,7 @@ public class PersonListView extends VerticalLayout {
         addClassName("editing");
     }
 
-    private void addOrgRoles(PersonForm.AssignOrgEvent event) {
+    private void assignOrgRoles(PersonForm.AssignOrgEvent event) {
         closePersonForm();
         enableComponents(false);
         assignRoleForm.setVisible(true);
@@ -347,6 +369,14 @@ public class PersonListView extends VerticalLayout {
         enableComponents(true);
         personForm.setVisible(false);
         removeClassName("editing");
+    }
+
+    private void closeAssignADUsersForm(Person person) {
+        assignADUserForm.setData(null, null);
+        assignADUserForm.setVisible(false);
+        personForm.setPerson(person);
+        personForm.setVisible(true);
+        removeClassName("editing-assign-ad-users-form");
     }
 
     private void closeAssignRolesForm(PersonAssignRoleForm.CloseEvent event) {

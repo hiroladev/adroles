@@ -6,7 +6,6 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import de.hirola.adroles.Global;
-import de.hirola.adroles.data.entity.ADGroup;
 import de.hirola.adroles.data.entity.ADUser;
 import de.hirola.adroles.data.entity.Person;
 import com.vaadin.flow.component.ComponentEvent;
@@ -14,7 +13,6 @@ import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.TextField;
@@ -34,7 +32,7 @@ public class PersonForm extends VerticalLayout {
   private final TextField description = new TextField(getTranslation("description"));
   private final Checkbox isEmployee = new Checkbox(getTranslation("employee"));
   private final Grid<ADUser> adUserGrid = new Grid<>(ADUser.class, false);
-  private Button assignRolesButton, assignOrganizationsButton, saveButton;
+  private Button assignADUsersButton, assignRolesButton, assignOrganizationsButton, saveButton;
 
   public PersonForm() {
     addClassName("person-form");
@@ -80,6 +78,10 @@ public class PersonForm extends VerticalLayout {
     adUserGrid.setSelectionMode(Grid.SelectionMode.NONE);
     add(adUserGrid);
 
+    assignADUsersButton = new Button(getTranslation("assignADUsers"), new Icon(VaadinIcon.PLUS));
+    assignADUsersButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
+    assignADUsersButton.addClickListener(event -> fireEvent(new AssignADUsersEvent(this, person)));
+
     assignRolesButton = new Button(getTranslation("assignRoles"), new Icon(VaadinIcon.PLUS));
     assignRolesButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
     assignRolesButton.addClickListener(event -> fireEvent(new AssignRolesEvent(this, person)));
@@ -88,7 +90,7 @@ public class PersonForm extends VerticalLayout {
     assignOrganizationsButton.setWidth(Global.Component.DEFAULT_BUTTON_WIDTH);
     assignOrganizationsButton.addClickListener(event -> fireEvent(new AssignOrgEvent(this, person)));
 
-    HorizontalLayout assignButtonsLayout = new HorizontalLayout(assignRolesButton, assignOrganizationsButton);
+    HorizontalLayout assignButtonsLayout = new HorizontalLayout(assignADUsersButton, assignRolesButton, assignOrganizationsButton);
     assignButtonsLayout.setPadding(true);
     add(assignButtonsLayout);
 
@@ -161,6 +163,12 @@ public class PersonForm extends VerticalLayout {
 
   public static class SaveEvent extends PersonFormEvent {
     SaveEvent(PersonForm source, Person person) {
+      super(source, person);
+    }
+  }
+
+  public static class AssignADUsersEvent extends PersonFormEvent {
+    AssignADUsersEvent(PersonForm source, Person person) {
       super(source, person);
     }
   }

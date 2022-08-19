@@ -25,6 +25,7 @@ public class ADGroupForm extends FormLayout {
   private final TextField name = new TextField(getTranslation("name"));
   private final TextField distinguishedName = new TextField(getTranslation("distinguishedName"));
   private final TextField description = new TextField(getTranslation("description"));
+  private final TextField objectSID = new TextField(getTranslation("objectSID"));
   private final RadioButtonGroup<String> groupAreaRadioGroup = new RadioButtonGroup<>();
   private final RadioButtonGroup<String> groupTypeRadioGroup = new RadioButtonGroup<>();
   private final Checkbox isAdminGroup = new Checkbox(getTranslation("adminGroup"));
@@ -43,6 +44,8 @@ public class ADGroupForm extends FormLayout {
     name.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
     distinguishedName.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
     description.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+    objectSID.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+    objectSID.setReadOnly(true);
 
     groupAreaRadioGroup.setLabel(getTranslation("groupArea"));
     groupAreaRadioGroup.setItems(getTranslation("local"), getTranslation("global"),
@@ -51,7 +54,7 @@ public class ADGroupForm extends FormLayout {
     groupTypeRadioGroup.setLabel(getTranslation("groupType"));
     groupTypeRadioGroup.setItems(getTranslation("security"), getTranslation("distribution"));
 
-    formsLayout = new VerticalLayout(name, distinguishedName, description, isAdminGroup);
+    formsLayout = new VerticalLayout(name, distinguishedName, description, objectSID, isAdminGroup);
     formsLayout.setPadding(true);
 
     saveButton = new Button(getTranslation("save"));

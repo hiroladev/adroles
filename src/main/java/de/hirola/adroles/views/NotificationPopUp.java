@@ -18,8 +18,7 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.progressbar.ProgressBar;
+import de.hirola.adroles.Global;
 
 public enum NotificationPopUp {
     ;
@@ -44,6 +43,7 @@ public enum NotificationPopUp {
 
         } else {
             notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            notification.setDuration(Global.Component.DEFAULT_NOTIFICATION_DURATION);
             notification.setText(message);
         }
         notification.setPosition(Notification.Position.MIDDLE);
@@ -56,20 +56,25 @@ public enum NotificationPopUp {
         Div text = new Div(new Text(message));
         Div subText = new Div(new Text(subMessage));
 
-        Button closeButton = new Button(new Icon("lumo", "cross"));
-        closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
-        closeButton.getElement().setAttribute("aria-label", UI.getCurrent().getTranslation("close"));
-        closeButton.addClickListener(event -> notification.close());
-
-        VerticalLayout textLayout = new VerticalLayout(text, subText);
-        textLayout.setAlignItems(FlexComponent.Alignment.CENTER);
-        HorizontalLayout layout = new HorizontalLayout(textLayout, closeButton);
-        notification.add(layout);
-
         if (mode == NotificationPopUp.ERROR) {
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+
+            Button closeButton = new Button(new Icon("lumo", "cross"));
+            closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY_INLINE);
+            closeButton.getElement().setAttribute("aria-label", UI.getCurrent().getTranslation("close"));
+            closeButton.addClickListener(event -> notification.close());
+
+            HorizontalLayout layout = new HorizontalLayout(text, subText, closeButton);
+            layout.setAlignItems(FlexComponent.Alignment.CENTER);
+            notification.add(layout);
+
         } else {
             notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            notification.setDuration(Global.Component.DEFAULT_NOTIFICATION_DURATION);
+
+            HorizontalLayout layout = new HorizontalLayout(text, subText);
+            layout.setAlignItems(FlexComponent.Alignment.CENTER);
+            notification.add(layout);
         }
         notification.setPosition(Notification.Position.MIDDLE);
         notification.open();

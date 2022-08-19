@@ -17,13 +17,13 @@ import com.vaadin.flow.router.Route;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.ActiveDirectory;
 import de.hirola.adroles.service.IdentityService;
+import de.hirola.adroles.util.ServiceResult;
 import de.hirola.adroles.views.MainLayout;
 import de.hirola.adroles.views.NotificationPopUp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.PermitAll;
-import java.net.ConnectException;
 
 @Route(value = "connection-setting", layout = MainLayout.class)
 @PageTitle("Settings - Connection | AD-Roles")
@@ -33,14 +33,14 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
     private final Logger logger = LoggerFactory.getLogger(ConnectionSettingsTabView.class);
     private final Binder<ActiveDirectory> activeDirectoryBinder = new BeanValidationBinder<>(ActiveDirectory.class);
     private final ActiveDirectory activeDirectory; //TODO: in v.0.1 only 1 DC is possible
-    private final IdentityService service;
+    private final IdentityService identityService;
     private Button saveButton;
     private Button verifyButton;
 
-    public ConnectionSettingsTabView(IdentityService service) {
-        this.service = service;
+    public ConnectionSettingsTabView(IdentityService identityService) {
+        this.identityService = identityService;
         // load the objects from backend
-        activeDirectory = service.getActiveDirectory();
+        activeDirectory = identityService.getActiveDirectory();
         activeDirectoryBinder.setBean(activeDirectory);
         addClassName("dashboard-view");
         setDefaultHorizontalComponentAlignment(Alignment.START);
@@ -82,11 +82,12 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
         add(useSecureConnection);
 
         TextField usernameTextField = new TextField(getTranslation("username"));
-        usernameTextField.setPlaceholder("CN=AD-Roles,CN=Users,DC=example,DC=com");
+        usernameTextField.setPlaceholder(getTranslation("domain.user.placeHolder"));
+        usernameTextField.setHelperText(getTranslation("domain.user.helperText"));
         usernameTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         activeDirectoryBinder
                 .forField(usernameTextField)
-                .withValidator(username -> username.length() > 0, getTranslation("error.input.all.empty"))
+                .withValidator(username -> username.contains(",CN="), getTranslation("error.input.domainUserName"))
                 .bind(ActiveDirectory::getConnectionUserName, ActiveDirectory::setConnectionUserName);
         add(usernameTextField);
 
@@ -123,11 +124,10 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
             try {
                 // update form object from component values
                 activeDirectoryBinder.writeBean(activeDirectory);
-                service.saveActiveDirectory(activeDirectory);
+                identityService.saveActiveDirectory(activeDirectory);
                 NotificationPopUp.show(NotificationPopUp.INFO, getTranslation("data.saved"));
             } catch (ValidationException exception) {
                 NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.save"));
-                logger.debug(exception.getLocalizedMessage());
             }
         }
         if (buttonClickEvent.getSource().equals(verifyButton)) {
@@ -135,11 +135,15 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
                 // update form object from component values
                 activeDirectoryBinder.writeBean(activeDirectory);
                 // test the connection
-                service.verifyConnection(activeDirectory);
-                NotificationPopUp.show(NotificationPopUp.INFO, getTranslation("domain.connected"));
-            } catch (ValidationException | ConnectException exception) {
-                NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.domain.connection"));
-                logger.debug(exception.getMessage());
+                ServiceResult serviceResult = identityService.verifyConnection(activeDirectory);
+                if (serviceResult.operationSuccessful) {
+                    NotificationPopUp.show(NotificationPopUp.INFO, getTranslation("domain.connected"));
+                } else {
+                    NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.domain.connection"),
+                            serviceResult.resultMessage);
+                }
+            } catch (ValidationException exception) {
+                NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.save"));
             }
         }
     }

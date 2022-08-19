@@ -79,5 +79,6 @@ public final class Global {
         public static final String DEFAULT_COLUMN_WIDTH = "200px";
         public static final String IMAGE_COLUMN_WIDTH = "50px";
         public static final String FOOTER_COLUMN_KEY = "footerColumn";
+        public static final int DEFAULT_NOTIFICATION_DURATION = 3;
     }
 }

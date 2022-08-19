@@ -22,6 +22,7 @@ public class ADUserForm extends FormLayout {
   private  final Binder<ADUser> binder = new BeanValidationBinder<>(ADUser.class);
   private final TextField logonName = new TextField(getTranslation("logonName"));
   private final TextField distinguishedName = new TextField(getTranslation("distinguishedName"));
+  private final TextField objectSID = new TextField(getTranslation("objectSID"));
   private final Checkbox isRoleManaged = new Checkbox(getTranslation("isRoleManaged"));
   private final Checkbox isAdminAccount = new Checkbox(getTranslation("adminAccount"));
   private final Checkbox isServiceAccount = new Checkbox(getTranslation("serviceAccount"));
@@ -39,8 +40,10 @@ public class ADUserForm extends FormLayout {
 
     logonName.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
     distinguishedName.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+    objectSID.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+    objectSID.setReadOnly(true);
 
-    VerticalLayout formsLayout = new VerticalLayout(logonName, distinguishedName,
+    VerticalLayout formsLayout = new VerticalLayout(logonName, distinguishedName, objectSID,
             isRoleManaged, isAdminAccount, isServiceAccount);
     formsLayout.setPadding(true);
 

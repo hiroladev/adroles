@@ -2,11 +2,7 @@ package de.hirola.adroles.data.entity;
 
 import de.hirola.adroles.data.AbstractEntity;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.ManyToMany;
-import javax.validation.constraints.NotBlank;
+import javax.persistence.*;
 import javax.validation.constraints.NotEmpty;
 import java.util.*;
 
@@ -22,12 +18,12 @@ import java.util.*;
 
 @Entity
 public class ADGroup extends AbstractEntity implements Comparable<ADGroup> {
-    @NotBlank
+    @NotEmpty
     private String name;
     @NotEmpty
     private String distinguishedName;
     @NotEmpty
-    private String objectSID;  // SID does never change
+    private String objectSID = UUID.randomUUID().toString(); // SID does never change
     private String description;
     private int groupArea; // local, global, universal ==> Global.ADGroupArea
     private int groupType; // security, distribution ==> Global.ADGroupType
