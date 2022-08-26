@@ -6,7 +6,7 @@
     <artifactId>adroles</artifactId>
     <name>Role based Active Directory Management</name>
     <version>0.1-SNAPSHOT</version>
-    <packaging>jar</packaging>
+    <packaging>war</packaging>
 
     <properties>
         <java.version>11</java.version>
@@ -117,7 +117,17 @@
                     <groupId>com.vaadin</groupId>
                     <artifactId>vaadin-core</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-tomcat</artifactId>
+                </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>3.1.0</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.vaadin.artur</groupId>
@@ -214,6 +224,7 @@
 
     <build>
         <defaultGoal>spring-boot:run</defaultGoal>
+        <finalName>${project.artifactId}</finalName>
         <plugins>
             <!--
                       Take care of synchronizing java dependencies and imports in
@@ -238,6 +249,23 @@
                 <configuration>
                     <source>16</source>
                     <target>16</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>3.3.1</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>de.hirola.adroles.Application</mainClass>
+                        </manifest>
+                    </archive>
                 </configuration>
             </plugin>
         </plugins>

@@ -87,7 +87,7 @@ public class ConnectionSettingsTabView extends VerticalLayout implements Compone
         usernameTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         activeDirectoryBinder
                 .forField(usernameTextField)
-                .withValidator(username -> username.contains(",CN="), getTranslation("error.input.domainUserName"))
+                .withValidator(username -> username.contains("CN="), getTranslation("error.input.domainUserName"))
                 .bind(ActiveDirectory::getConnectionUserName, ActiveDirectory::setConnectionUserName);
         add(usernameTextField);
 
