@@ -1,3 +1,14 @@
+/*
+ * *
+ *  * Copyright 2022 by Michael Schmidt, Hirola Consulting
+ *  * This software us licensed under the AGPL-3.0 or later.
+ *  *
+ *  *
+ *  * @author Michael Schmidt (Hirola)
+ *  * @since v0.1
+ *
+ */
+
 package de.hirola.adroles;
 
 import com.vaadin.flow.component.dependency.NpmPackage;

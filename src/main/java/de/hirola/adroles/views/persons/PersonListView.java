@@ -52,7 +52,7 @@ public class PersonListView extends VerticalLayout {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             identityService.setSessionUserName(authentication.getName());
-        } catch (Exception exception) {
+        } catch (RuntimeException exception) {
             logger.debug("Could not determine currently user.", exception);
         }
         addClassName("persons-list-view");

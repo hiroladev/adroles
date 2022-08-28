@@ -16,6 +16,12 @@ import java.time.ZoneId;
 
 public final class Global {
 
+    public enum CONFIG {
+        ;
+        public static final String CONFIG_DIR_VAR = "ADROLES_CONFIG_DIR";
+        public static final String DB_CONFIG_FILE = "db.properties";
+    }
+
     public enum LOGGING_VALUES {
         ;
         public static final String UNKNOWN_USER_STRING = "Unknown";
