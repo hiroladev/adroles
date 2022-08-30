@@ -5,7 +5,7 @@ import javax.persistence.*;
 /**
  * Copyright 2022 by Michael Schmidt, Hirola Consulting
  * This software us licensed under the AGPL-3.0 or later.
- * <p>
+ *
  * All entities extend this as super class.
  *
  * @author Michael Schmidt (Hirola)
@@ -36,9 +36,10 @@ public abstract class AbstractEntity {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof AbstractEntity other)) {
+        if (!(obj instanceof AbstractEntity)) {
             return false; // null or other class
         }
+        AbstractEntity other = (AbstractEntity) obj;
 
         if (id != null) {
             return id.equals(other.id);

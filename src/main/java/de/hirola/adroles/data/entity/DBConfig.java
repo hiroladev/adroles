@@ -1,3 +1,14 @@
+/*
+ * *
+ *  * Copyright 2022 by Michael Schmidt, Hirola Consulting
+ *  * This software us licensed under the AGPL-3.0 or later.
+ *  *
+ *  *
+ *  * @author Michael Schmidt (Hirola)
+ *  * @since v0.1
+ *
+ */
+
 package de.hirola.adroles.data.entity;
 
 import de.hirola.adroles.data.AbstractEntity;
@@ -6,21 +17,11 @@ import javax.persistence.Entity;
 import javax.validation.constraints.NotEmpty;
 import java.util.Objects;
 
-/**
- * Copyright 2022 by Michael Schmidt, Hirola Consulting
- * This software us licensed under the AGPL-3.0 or later.
- * <p>
- *  DatabaseConfiguration for AD-Roles.
- *
- * @author Michael Schmidt (Hirola)
- * @since v0.1
- */
 @Entity
-public class DatabaseConfiguration extends AbstractEntity {
+public class DBConfig extends AbstractEntity {
     @NotEmpty
     private String name;
-    @NotEmpty
-    private String jdbcDriver;
+    private String jdbcDriverName;
     private String jdbcUrl;
     private String username;
     private String password;
@@ -33,12 +34,12 @@ public class DatabaseConfiguration extends AbstractEntity {
         this.name = name;
     }
 
-    public String getJdbcDriver() {
-        return Objects.requireNonNullElse(jdbcDriver, "");
+    public String getJdbcDriverName() {
+        return Objects.requireNonNullElse(jdbcDriverName, "");
     }
 
-    public void setJdbcDriver(String jdbcDriver) {
-        this.jdbcDriver = jdbcDriver;
+    public void setJdbcDriverName(String jdbcDriverName) {
+        this.jdbcDriverName = jdbcDriverName;
     }
 
     public String getJdbcUrl() {

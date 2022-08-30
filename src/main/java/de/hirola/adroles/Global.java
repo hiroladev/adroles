@@ -19,11 +19,20 @@ public final class Global {
     public enum CONFIG {
         ;
         public static final String CONFIG_DIR_VAR = "ADROLES_CONFIG_DIR";
-        public static final String DB_CONFIG_FILE = "db.properties";
+        public static final String LOG_DIR_VAR = "ADROLES_LOG_DIR";
+        public static final String DATASOURCE_TYPE = "db.type";
+        public static final String DATASOURCE_NAME = "db.name";
+        public static final String DATASOURCE_URL = "db.jdbcUrl";
+        public static final String DATASOURCE_DRIVER_NAME = "db.jdbcDriver";
+        public static final String DEFAULT_DATA_SOURCE = "H2/RAM";
+        public static final String H2_DATA_SOURCE = "H2";
+        public static final String POSTGRES_DATA_SOURCE = "Postgres";
+        public static final String POSTGRES_HIBERNATE_DIALECT = "org.hibernate.dialect.PostgreSQL81Dialect";
     }
 
     public enum LOGGING_VALUES {
         ;
+        public static final String USE_DEBUG_MODE = "adroles.debug.mode";
         public static final String UNKNOWN_USER_STRING = "Unknown";
     }
 

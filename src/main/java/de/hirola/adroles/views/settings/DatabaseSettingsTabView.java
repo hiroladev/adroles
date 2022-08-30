@@ -1,42 +1,63 @@
 package de.hirola.adroles.views.settings;
 
-import com.vaadin.flow.component.ClickEvent;
-import com.vaadin.flow.component.ComponentEventListener;
-import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.data.binder.Binder;
-import com.vaadin.flow.data.binder.ValidationException;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import de.hirola.adroles.data.DataSourceFactory;
+import de.hirola.adroles.Global;
+import de.hirola.adroles.service.ConfigurationService;
 import de.hirola.adroles.views.MainLayout;
-import de.hirola.adroles.views.NotificationPopUp;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.security.PermitAll;
 
 @Route(value = "database-settings", layout = MainLayout.class)
 @PageTitle("Settings - ApplicationConfig | AD-Roles")
 @PermitAll
-public class DatabaseSettingsTabView extends VerticalLayout implements ComponentEventListener<ClickEvent<Button>> {
-    private final Logger logger = LoggerFactory.getLogger(DatabaseSettingsTabView.class);
-    private Button saveButton;
-    private Button verifyButton;
+public class DatabaseSettingsTabView extends VerticalLayout {
 
-    public DatabaseSettingsTabView() {
+    @Autowired
+    private Environment env;
+    private final ConfigurationService configurationService;
+    private TextField typeTextField, configurationNameTextField, jdbcDriverTextField, jdbcURLTextField;
 
-        addClassName("dashboard-view");
+    public DatabaseSettingsTabView(ConfigurationService configurationService) {
+        this.configurationService = configurationService;
+        addClassName("database-settings-tabview");
         setDefaultHorizontalComponentAlignment(Alignment.START);
         add(SettingsTabBar.getTabs(3));
-        addComponents();
     }
 
+    @PostConstruct // Autowiring happens later than load() is called (for some reason) -> env is null
     private void addComponents() {
+        typeTextField = new TextField(getTranslation("database.configuration.type"));
+        typeTextField.setValue(env.getProperty(Global.CONFIG.DATASOURCE_TYPE));
+        typeTextField.setReadOnly(true);
+        typeTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+        add(typeTextField);
 
-    }
+        configurationNameTextField = new TextField(getTranslation("database.configuration.name"));
+        configurationNameTextField.setValue(env.getProperty(Global.CONFIG.DATASOURCE_NAME));
+        configurationNameTextField.setReadOnly(true);
+        configurationNameTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+        add(configurationNameTextField);
 
-    @Override
-    public void onComponentEvent(ClickEvent<Button> buttonClickEvent) {
+        jdbcDriverTextField = new TextField(getTranslation("database.configuration.jdbcDriver"));
+        jdbcDriverTextField.setReadOnly(true);
+        jdbcDriverTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+        String jdbcDriverName = env.getProperty(Global.CONFIG.DATASOURCE_DRIVER_NAME, "");
+        if (jdbcDriverName.isEmpty()) {
+            jdbcDriverTextField.setValue(getTranslation("database.configuration.jdbcDriverDefaultValue"));
+        } else {
+            jdbcDriverTextField.setValue(jdbcDriverName);
+        }
+        add(jdbcDriverTextField);
+
+        jdbcURLTextField = new TextField(getTranslation("database.configuration.jdbcURL"));
+        jdbcURLTextField.setReadOnly(true);
+        jdbcURLTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
+        add(jdbcURLTextField);
     }
 }
