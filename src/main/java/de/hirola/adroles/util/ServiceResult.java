@@ -10,8 +10,8 @@ package de.hirola.adroles.util;
 
 public final class ServiceResult {
 
-    public boolean operationSuccessful;
-    public String resultMessage;
+    public final boolean operationSuccessful;
+    public final String resultMessage;
 
     public ServiceResult(boolean operationSuccessful, String resultMessage) {
         this.operationSuccessful = operationSuccessful;

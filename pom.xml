@@ -218,12 +218,8 @@
         <dependency>
             <groupId>io.github.bonigarcia</groupId>
             <artifactId>webdrivermanager</artifactId>
-            <version>5.2.0</version>
+            <version>5.2.3</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
         </dependency>
 
         <!-- Postgres database -->
@@ -269,7 +265,7 @@
                 <configuration>
                     <systemPropertyVariables>
                         <propertyName>java.runtime.version</propertyName>
-                        <propertyValue>18</propertyValue>
+                        <propertyValue>16</propertyValue>
                         <buildDirectory>${project.build.directory}</buildDirectory>
                     </systemPropertyVariables>
                 </configuration>

@@ -10,9 +10,7 @@ package de.hirola.adroles.views;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.dialog.Dialog;
-import com.vaadin.flow.component.dialog.DialogVariant;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import de.hirola.adroles.Global;
 
@@ -26,7 +24,7 @@ public final class ProgressModalDialog {
                 UI.getCurrent().getTranslation(subMessageKey));
     }
 
-    public void open() {} {
+    public void open() {
         if (!dialog.isOpened()) {
             dialog.open();
         }

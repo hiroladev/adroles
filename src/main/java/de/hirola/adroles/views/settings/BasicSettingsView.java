@@ -5,8 +5,6 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import de.hirola.adroles.Global;
-import de.hirola.adroles.service.IdentityService;
 import de.hirola.adroles.views.MainLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,16 +12,12 @@ import org.springframework.boot.actuate.logging.LoggersEndpoint;
 import org.springframework.boot.logging.LogLevel;
 
 import javax.annotation.security.PermitAll;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
 
 @Route(value = "settings", layout = MainLayout.class)
 @PageTitle("Settings | AD-Roles")
 @PermitAll
 public class BasicSettingsView extends VerticalLayout {
-
     private final Logger logger = LoggerFactory.getLogger(BasicSettingsView.class);
     private final LoggersEndpoint loggersEndpoint;
 
