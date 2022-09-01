@@ -36,8 +36,8 @@ public final class SettingsTabBar {
         tabs.add(
                 createTab(VaadinIcon.COG, BasicSettingsView.class, UI.getCurrent().getTranslation("settings")),
                 createTab(VaadinIcon.SERVER, ConnectionSettingsTabView.class, UI.getCurrent().getTranslation("settings.connection")),
-                createTab(VaadinIcon.AUTOMATION, RoleSettingsTabView.class, UI.getCurrent().getTranslation("settings.roles")),
-                createTab(VaadinIcon.DATABASE, DatabaseSettingsTabView.class, UI.getCurrent().getTranslation("settings.database"))
+                createTab(VaadinIcon.DATABASE, DatabaseSettingsTabView.class, UI.getCurrent().getTranslation("settings.database")),
+                createTab(VaadinIcon.AUTOMATION, RoleSettingsTabView.class, UI.getCurrent().getTranslation("settings.roles"))
         );
         tabs.setOrientation(Tabs.Orientation.HORIZONTAL);
         tabs.setSelectedIndex(selectedIndex);

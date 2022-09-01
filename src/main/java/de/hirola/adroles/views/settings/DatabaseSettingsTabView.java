@@ -21,30 +21,29 @@ public class DatabaseSettingsTabView extends VerticalLayout {
     @Autowired
     private Environment env;
     private final ConfigurationService configurationService;
-    private TextField typeTextField, configurationNameTextField, jdbcDriverTextField, jdbcURLTextField;
 
     public DatabaseSettingsTabView(ConfigurationService configurationService) {
         this.configurationService = configurationService;
         addClassName("database-settings-tabview");
         setDefaultHorizontalComponentAlignment(Alignment.START);
-        add(SettingsTabBar.getTabs(3));
+        add(SettingsTabBar.getTabs(2));
     }
 
     @PostConstruct // Autowiring happens later than load() is called (for some reason) -> env is null
     private void addComponents() {
-        typeTextField = new TextField(getTranslation("database.configuration.type"));
+        TextField typeTextField = new TextField(getTranslation("database.configuration.type"));
         typeTextField.setValue(env.getProperty(Global.CONFIG.DATASOURCE_TYPE));
         typeTextField.setReadOnly(true);
         typeTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         add(typeTextField);
 
-        configurationNameTextField = new TextField(getTranslation("database.configuration.name"));
+        TextField configurationNameTextField = new TextField(getTranslation("database.configuration.name"));
         configurationNameTextField.setValue(env.getProperty(Global.CONFIG.DATASOURCE_NAME));
         configurationNameTextField.setReadOnly(true);
         configurationNameTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         add(configurationNameTextField);
 
-        jdbcDriverTextField = new TextField(getTranslation("database.configuration.jdbcDriver"));
+        TextField jdbcDriverTextField = new TextField(getTranslation("database.configuration.jdbcDriver"));
         jdbcDriverTextField.setReadOnly(true);
         jdbcDriverTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         String jdbcDriverName = env.getProperty(Global.CONFIG.DATASOURCE_DRIVER_NAME, "");
@@ -55,7 +54,7 @@ public class DatabaseSettingsTabView extends VerticalLayout {
         }
         add(jdbcDriverTextField);
 
-        jdbcURLTextField = new TextField(getTranslation("database.configuration.jdbcURL"));
+        TextField jdbcURLTextField = new TextField(getTranslation("database.configuration.jdbcURL"));
         jdbcURLTextField.setReadOnly(true);
         jdbcURLTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         add(jdbcURLTextField);

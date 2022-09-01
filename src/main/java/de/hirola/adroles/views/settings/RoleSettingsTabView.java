@@ -16,7 +16,7 @@ public class RoleSettingsTabView extends VerticalLayout {
     public RoleSettingsTabView(IdentityService service) {
         addClassName("dashboard-view");
         setDefaultHorizontalComponentAlignment(Alignment.START);
-        add(SettingsTabBar.getTabs(2));
+        add(SettingsTabBar.getTabs(3));
     }
 
 }
