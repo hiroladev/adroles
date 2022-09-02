@@ -117,7 +117,9 @@ public class RolesListView extends VerticalLayout {
                         if (roleResource.isOrgResource()) {
                             return VaadinIcon.OFFICE.create();
                         } else if (roleResource.isProjectResource()) {
-                            return VaadinIcon.CALENDAR_BRIEFCASE.create();
+                                return VaadinIcon.CALENDAR_BRIEFCASE.create();
+                        } else if (roleResource.isEmailResource()) {
+                            return VaadinIcon.MAILBOX.create();
                         } else if (roleResource.isFileShareResource()) {
                             return VaadinIcon.FOLDER.create();
                         } else {

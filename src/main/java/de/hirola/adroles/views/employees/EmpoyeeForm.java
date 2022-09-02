@@ -131,6 +131,8 @@ public class EmpoyeeForm extends VerticalLayout {
                   return VaadinIcon.OFFICE.create();
                 } else if (roleResource.isProjectResource()) {
                   return VaadinIcon.CALENDAR_BRIEFCASE.create();
+                } else if (roleResource.isEmailResource()) {
+                  return VaadinIcon.MAILBOX.create();
                 } else if (roleResource.isFileShareResource()) {
                   return VaadinIcon.FOLDER.create();
                 } else {
