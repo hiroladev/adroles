@@ -47,6 +47,7 @@ public enum NotificationPopUp {
             notification.setText(message);
         }
         notification.setPosition(Notification.Position.MIDDLE);
+        notification.setDuration(Global.Component.DEFAULT_NOTIFICATION_DURATION);
         notification.open();
     }
 
@@ -77,6 +78,7 @@ public enum NotificationPopUp {
             notification.add(layout);
         }
         notification.setPosition(Notification.Position.MIDDLE);
+        notification.setDuration(Global.Component.DEFAULT_NOTIFICATION_DURATION);
         notification.open();
     }
 }

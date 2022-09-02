@@ -28,7 +28,6 @@ import java.util.Objects;
 @Configuration
 @PropertySource(value = "file:${ADROLES_CONFIG_DIR}/db.properties", ignoreResourceNotFound = true)
 public class DataSourceFactory {
-
     @Autowired
     private Environment env;
     @Value("${db.type}")

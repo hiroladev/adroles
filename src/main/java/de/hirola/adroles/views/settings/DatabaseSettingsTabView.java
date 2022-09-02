@@ -55,6 +55,7 @@ public class DatabaseSettingsTabView extends VerticalLayout {
         add(jdbcDriverTextField);
 
         TextField jdbcURLTextField = new TextField(getTranslation("database.configuration.jdbcURL"));
+        jdbcURLTextField.setValue(env.getProperty(Global.CONFIG.DATASOURCE_URL));
         jdbcURLTextField.setReadOnly(true);
         jdbcURLTextField.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
         add(jdbcURLTextField);

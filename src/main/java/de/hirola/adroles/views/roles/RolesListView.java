@@ -26,6 +26,10 @@ import de.hirola.adroles.util.ServiceResult;
 import de.hirola.adroles.views.MainLayout;
 import de.hirola.adroles.views.NotificationPopUp;
 import de.hirola.adroles.views.ProgressModalDialog;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.annotation.security.PermitAll;
 import java.util.ArrayList;
@@ -38,6 +42,7 @@ import java.util.stream.Stream;
 @PageTitle("Roles Overview | AD-Roles")
 @PermitAll
 public class RolesListView extends VerticalLayout {
+    private Logger logger = LoggerFactory.getLogger(RolesListView.class);
     private final Hashtable<String, RoleResource> roleResourceList = new Hashtable<>();
     private RoleContextMenu contextMenu;
     private RoleForm roleForm;
@@ -53,6 +58,12 @@ public class RolesListView extends VerticalLayout {
 
     public RolesListView(IdentityService identityService) {
         this.identityService = identityService;
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            identityService.setSessionValues(authentication.getName());
+        } catch (RuntimeException exception) {
+            logger.debug("Could not determine currently user.", exception);
+        }
         loadAvailableRoleResources();
         addClassName("role-list-view");
         setSizeFull();

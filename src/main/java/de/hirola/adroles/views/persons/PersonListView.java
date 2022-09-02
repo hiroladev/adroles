@@ -51,7 +51,7 @@ public class PersonListView extends VerticalLayout {
         this.identityService = identityService;
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            identityService.setSessionUserName(authentication.getName());
+            identityService.setSessionValues(authentication.getName());
         } catch (RuntimeException exception) {
             logger.debug("Could not determine currently user.", exception);
         }
@@ -165,10 +165,11 @@ public class PersonListView extends VerticalLayout {
         add(toolbar, content);
     }
     
-    private void importPersons() {
+    private void importPersons() { //TODO: show progress bar
         Dialog dialog = new Dialog();
         dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
         if (identityService.countPersons() > 0) {
+            updateButton.setEnabled(false);
             // data can be override
             dialog.setHeaderTitle(getTranslation("question.updateData"));
 
@@ -192,7 +193,6 @@ public class PersonListView extends VerticalLayout {
             dialog.add(messageArea);
             dialog.getFooter().add(okButton);
             dialog.getFooter().add(cancelButton);
-
             dialog.open();
         } else {
             dialog.close();

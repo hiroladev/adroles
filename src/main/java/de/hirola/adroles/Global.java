@@ -32,7 +32,6 @@ public final class Global {
 
     public enum LOGGING_VALUES {
         ;
-        public static final String USE_DEBUG_MODE = "adroles.debug.mode";
         public static final String UNKNOWN_USER_STRING = "Unknown";
     }
 
@@ -40,22 +39,27 @@ public final class Global {
         ;
         public static final LocalDate ENTRY_DATE = LocalDate.now(ZoneId.systemDefault());
         public static final LocalDate EXIT_DATE = LocalDate.of(2100, 12, 31);
-
         public static final LocalDate MIN_UPPER_DATE = LocalDate.ofYearDay(1991, 31);
     }
 
     public enum ROLE_RESOURCE {
         ;
         public static final int DEFAULT_ROLE = 0;
+        public static final String ROLE_RESOURCE_STRING = "Role";
         public static final int ORG_ROLE = 1;
+        public static final String ORG_RESOURCE_STRING = "Organization";
         public static final int PROJECT_ROLE = 2;
+        public static final String PROJECT_RESOURCE_STRING = "Project";
         public static final int FILE_SHARE_ROLE = 3;
+        public static final String FILE_RESOURCE_STRING = "Share";
         public static final int EMAIL_RESOURCE_ROLE = 4;
+        public static final String EMAIL_RESOURCE_STRING = "E-Mail";
     }
 
     public enum IMPORT_SETTINGS {
         ;
         public static final int MAX_STRING_LENGTH = 255;
+        public static final String DEFAULT_IMPORT_TEXT = "Imported / Created by service";
         public static final String ADMIN_GROUP_TEXT = "admin";
         public static final String PROJECT_ROLE_TEXT = "proj";
         public static final String FILE_SHARE_ROLE_TEXT = "share";
@@ -94,6 +98,6 @@ public final class Global {
         public static final String DEFAULT_COLUMN_WIDTH = "200px";
         public static final String IMAGE_COLUMN_WIDTH = "50px";
         public static final String FOOTER_COLUMN_KEY = "footerColumn";
-        public static final int DEFAULT_NOTIFICATION_DURATION = 3;
+        public static final int DEFAULT_NOTIFICATION_DURATION = 30;
     }
 }

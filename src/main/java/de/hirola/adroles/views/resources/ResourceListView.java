@@ -20,6 +20,10 @@ import de.hirola.adroles.views.NotificationPopUp;
 import de.hirola.adroles.views.roles.RoleForm;
 import de.hirola.adroles.views.roles.RoleAssignADGroupForm;
 import de.hirola.adroles.views.roles.RoleAssignPersonForm;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -37,6 +41,7 @@ import java.util.List;
 
 
 public class ResourceListView extends VerticalLayout {
+    private final Logger logger = LoggerFactory.getLogger(ResourceListView.class);
     private final IdentityService identityService;
     private final Hashtable<String, RoleResource> roleResourceList = new Hashtable<>();
     private final RoleResource roleResource;
@@ -50,6 +55,12 @@ public class ResourceListView extends VerticalLayout {
 
     public ResourceListView(IdentityService identityService, int resourceType) throws InstantiationException {
         this.identityService = identityService;
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            identityService.setSessionValues(authentication.getName());
+        } catch (RuntimeException exception) {
+            logger.debug("Could not determine currently user.", exception);
+        }
         roleResource = identityService.getRoleResource(resourceType);
         if (roleResource == null) {
             throw  new InstantiationException(getTranslation("error.resource.instantiation"));

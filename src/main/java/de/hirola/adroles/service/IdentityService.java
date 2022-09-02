@@ -14,7 +14,6 @@ import com.imperva.ddc.core.language.QueryAssembler;
 import com.imperva.ddc.core.language.SentenceOperator;
 import com.imperva.ddc.core.query.*;
 import com.imperva.ddc.service.DirectoryConnectorService;
-import com.vaadin.flow.component.UI;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.*;
 import de.hirola.adroles.data.repository.*;
@@ -53,7 +52,6 @@ public class IdentityService {
     private final RoleResourceRepository roleResourceRepository;
     private final ADUserRepository adUserRepository;
     private final ADGroupRepository adGroupRepository;
-    private QueryRequest queryRequest = null;
 
     public IdentityService(ActiveDirectoryRepository activeDirectoryRepository,
                            PersonRepository personRepository,
@@ -77,7 +75,7 @@ public class IdentityService {
         }
     }
 
-    public void setSessionUserName(String sessionUserName) {
+    public void setSessionValues(String sessionUserName) {
         if (sessionUserName == null) {
             return;
         }
@@ -91,10 +89,10 @@ public class IdentityService {
                 if (optionalOrgResource.isPresent()) {
                     return optionalOrgResource.get();
                 }
-                // create resource for org units
+                // createQueryRequest resource for org units
                 RoleResource orgRoleResource = new RoleResource();
-                orgRoleResource.setName(UI.getCurrent().getTranslation("org"));
-                orgRoleResource.setDescription(UI.getCurrent().getTranslation("org"));
+                orgRoleResource.setName(Global.ROLE_RESOURCE.ORG_RESOURCE_STRING);
+                orgRoleResource.setDescription(Global.ROLE_RESOURCE.ORG_RESOURCE_STRING);
                 orgRoleResource.setViewClassName("org-view");
                 orgRoleResource.setAddResourceTranslationKey("addOrg");
                 orgRoleResource.setDeleteResourcesTranslationKey("deleteOrg");
@@ -113,10 +111,10 @@ public class IdentityService {
                 if (optionalProjectResource.isPresent()) {
                     return optionalProjectResource.get();
                 }
-                // create resource for org units
+                // createQueryRequest resource for org units
                 RoleResource projRoleResource = new RoleResource();
-                projRoleResource.setName(UI.getCurrent().getTranslation("project"));
-                projRoleResource.setDescription(UI.getCurrent().getTranslation("project"));
+                projRoleResource.setName(Global.ROLE_RESOURCE.PROJECT_RESOURCE_STRING);
+                projRoleResource.setDescription(Global.ROLE_RESOURCE.PROJECT_RESOURCE_STRING);
                 projRoleResource.setViewClassName("project-view");
                 projRoleResource.setAddResourceTranslationKey("addProject");
                 projRoleResource.setDeleteResourcesTranslationKey("deleteProjects");
@@ -135,10 +133,10 @@ public class IdentityService {
                 if (optionalShareResource.isPresent()) {
                     return optionalShareResource.get();
                 }
-                // create resource for file shares
+                // createQueryRequest resource for file shares
                 RoleResource shareRoleResource = new RoleResource();
-                shareRoleResource.setName(UI.getCurrent().getTranslation("fileShare"));
-                shareRoleResource.setDescription(UI.getCurrent().getTranslation("fileShare"));
+                shareRoleResource.setName(Global.ROLE_RESOURCE.FILE_RESOURCE_STRING);
+                shareRoleResource.setDescription(Global.ROLE_RESOURCE.FILE_RESOURCE_STRING);
                 shareRoleResource.setViewClassName("fileShare-view");
                 shareRoleResource.setAddResourceTranslationKey("addFileShare");
                 shareRoleResource.setDeleteResourcesTranslationKey("deleteFileShares");
@@ -157,10 +155,10 @@ public class IdentityService {
                 if (optionalEmailResource.isPresent()) {
                     return optionalEmailResource.get();
                 }
-                // create resource for email resources
+                // createQueryRequest resource for email resources
                 RoleResource emailRoleResource = new RoleResource();
-                emailRoleResource.setName(UI.getCurrent().getTranslation("emailResource"));
-                emailRoleResource.setDescription(UI.getCurrent().getTranslation("emailResource"));
+                emailRoleResource.setName(Global.ROLE_RESOURCE.EMAIL_RESOURCE_STRING);
+                emailRoleResource.setDescription(Global.ROLE_RESOURCE.EMAIL_RESOURCE_STRING);
                 emailRoleResource.setViewClassName("email-view");
                 emailRoleResource.setAddResourceTranslationKey("addEmailRole");
                 emailRoleResource.setDeleteResourcesTranslationKey("deleteEmailRoles");
@@ -179,10 +177,10 @@ public class IdentityService {
                 if (optionalResource.isPresent()) {
                     return optionalResource.get();
                 }
-                // create resource for org units
+                // createQueryRequest resource for org units
                 RoleResource defaultRoleResource = new RoleResource();
-                defaultRoleResource.setName(UI.getCurrent().getTranslation("role"));
-                defaultRoleResource.setDescription(UI.getCurrent().getTranslation("role"));
+                defaultRoleResource.setName(Global.ROLE_RESOURCE.ROLE_RESOURCE_STRING);
+                defaultRoleResource.setDescription(Global.ROLE_RESOURCE.ROLE_RESOURCE_STRING);
                 defaultRoleResource.setViewClassName("role-view");
                 defaultRoleResource.setAddResourceTranslationKey("addRole");
                 defaultRoleResource.setDeleteResourcesTranslationKey("deleteRole");
@@ -244,6 +242,9 @@ public class IdentityService {
     }
 
     public boolean isConnected() {
+        if (!isConnected) {
+            isConnected = connect();
+        }
         return isConnected;
     }
 
@@ -387,7 +388,7 @@ public class IdentityService {
             int added = 0, updated = 0;
             // load accounts from AD
             List<EntityResponse> responses = getADUserEntities();
-            // create / update AD user from response
+            // createQueryRequest / update AD user from response
             // we need the accounts first to link with persons
             for (EntityResponse response : responses) {
                 boolean[] returnValues = createOrUpdateADUser(response);
@@ -401,7 +402,7 @@ public class IdentityService {
             added = 0;
             updated = 0;
             addLogEntry(added + " users added, " + updated + " users updated from AD");
-            // create / update persons from response
+            // createQueryRequest / update persons from response
             for (EntityResponse response : responses) {
                 boolean[] returnValues = createOrUpdatePerson(response);
                 if (returnValues[0]) {
@@ -438,7 +439,7 @@ public class IdentityService {
             int added = 0, updated = 0;
             // load accounts from AD
             List<EntityResponse> responses = getADUserEntities();
-            // create / update AD accounts from response
+            // createQueryRequest / update AD accounts from response
             // we need the accounts first to link with persons and ad groups
             for (EntityResponse response : responses) {
                 boolean[] returnValues = createOrUpdateADUser(response);
@@ -462,7 +463,7 @@ public class IdentityService {
             int added = 0, updated = 0;
             // load groups from AD
             List<EntityResponse> responses = getADGroupEntities();
-            // create / update AD groups from response
+            // createQueryRequest / update AD groups from response
             // if AD users available - link by membership
             for (EntityResponse response : responses) {
                 boolean[] returnValues = createOrUpdateADGroup(response);
@@ -488,14 +489,14 @@ public class IdentityService {
         if (optionalResource.isPresent()) {
             orgRoleRoleResource = optionalResource.get();
         } else {
-            // try to create the role resource for org
+            // try to createQueryRequest the role resource for org
             if ((orgRoleRoleResource = getRoleResource(Global.ROLE_RESOURCE.ORG_ROLE)) == null){
                 logger.debug("Update organisations from persons failed. There are no organisations resource.");
                 return false;
             }
         }
         try {
-            // try to create org units from person attribute department
+            // try to createQueryRequest org units from person attribute department
             int updatedOrgRolesCount = 0;
             List<String> departmentNames = getUniqueDepartmentNames();
             List<Role> allRoles = findAllRoles(null, null);
@@ -514,7 +515,7 @@ public class IdentityService {
                 Role orgRole = new Role();
                 orgRole.setRoleResource(orgRoleRoleResource);
                 orgRole.setName(departmentName);
-                orgRole.setDescription(UI.getCurrent().getTranslation("updateFromPersons.description"));
+                orgRole.setDescription(Global.IMPORT_SETTINGS.DEFAULT_IMPORT_TEXT);
                 roleRepository.save(orgRole);
                 addLogEntry("Role \"" + orgRole.getName() + "\" added as organisation role.");
                 updatedOrgRolesCount++;
@@ -912,21 +913,17 @@ public class IdentityService {
         }
     }
 
-    private void connect() {
+    private boolean connect() {
         try {
             if (isConnected) {
-                return;
+                return true;
             }
             if (activeDirectory == null) {
                 logger.debug("Can not connect to the AD - AD is not configured.");
                 isConnected = false;
-                return;
+                return false;
             }
-            queryRequest = new QueryRequest();
-            queryRequest.setDirectoryType(DirectoryType.MS_ACTIVE_DIRECTORY);
-            queryRequest.setSizeLimit(1000); //TODO: read from config
-            queryRequest.setTimeLimit(1000); //TODO: read from config
-            // try to connect - add all valid endpoints to the query request
+            // try to connect
             endpoint.setSecuredConnection(activeDirectory.useSecureConnection());
             endpoint.setPort((int) activeDirectory.getPort());
             endpoint.setHost(activeDirectory.getIPAddress());
@@ -936,46 +933,61 @@ public class IdentityService {
             if (connectionResponse.isError()) {
                 logger.debug("The connection to the Active Directory failed.");
             }
-            queryRequest.addEndpoint(endpoint);
-            isConnected = true;
+            logger.debug("The connection to the Active Directory was successfully established.");
+            return true;
         } catch (Exception exception) {
             logger.debug("The connection to the Active Directory failed.", exception);
-            isConnected = false;
+            return false;
         }
+    }
+
+    @Nullable
+    private QueryRequest createQueryRequest() {
+        if (isConnected()) {
+            QueryRequest queryRequest = new QueryRequest();
+            queryRequest.setDirectoryType(DirectoryType.MS_ACTIVE_DIRECTORY);
+            queryRequest.setSizeLimit(1000); //TODO: read from config
+            queryRequest.setTimeLimit(1000); //TODO: read from config
+            queryRequest.addEndpoint(endpoint);
+            return queryRequest;
+        }
+        return null;
     }
 
     private List<EntityResponse> getADUserEntities() {
         if (isConnected()) {
-            try {
-                queryRequest.setObjectType(ObjectType.USER);
-                //TODO: set filter by config
-                // e.g. load only enabled accounts
-                queryRequest.addSearchSentence(new QueryAssembler()
-                        .addPhrase("userAccountControl", PhraseOperator.EQUAL, "512")
-                        .addPhrase("userAccountControl", PhraseOperator.EQUAL, "66048")
-                        .closeSentence(SentenceOperator.OR));
+            QueryRequest queryRequest = createQueryRequest();
+            if (queryRequest != null) {
+                try {
+                    queryRequest.setObjectType(ObjectType.USER);
+                    //TODO: set filter by config, e.g. load only enabled accounts
+                    queryRequest.addSearchSentence(new QueryAssembler()
+                            .addPhrase("userAccountControl", PhraseOperator.EQUAL, "512")
+                            .addPhrase("userAccountControl", PhraseOperator.EQUAL, "66048")
+                            .closeSentence(SentenceOperator.OR));
 
-                // get all fields needed for entities person and ad account
-                queryRequest.addRequestedField(Global.ADAttributes.DISPLAY_NAME);
-                queryRequest.addRequestedField(Global.ADAttributes.DESCRIPTION);
-                queryRequest.addRequestedField(Global.ADAttributes.ACCOUNT_EXPIRES);
-                queryRequest.addRequestedField(Global.ADAttributes.SID);
-                queryRequest.addRequestedField(FieldType.LOGON_NAME);
-                queryRequest.addRequestedField(FieldType.DISTINGUISHED_NAME);
-                queryRequest.addRequestedField(FieldType.FIRST_NAME);
-                queryRequest.addRequestedField(FieldType.LAST_NAME);
-                queryRequest.addRequestedField(FieldType.DEPARTMENT);
-                queryRequest.addRequestedField(FieldType.EMAIL);
-                queryRequest.addRequestedField(FieldType.PHONE_NUMBER);
-                queryRequest.addRequestedField(FieldType.MOBILE_PHONE);
-                queryRequest.addRequestedField(FieldType.USER_ACCOUNT_CONTROL);
-                queryRequest.addRequestedField(FieldType.CREATION_TIME); // possible employee entry date
-                Connector connector = new Connector(queryRequest);
-                QueryResponse queryResponse = connector.execute();
-                logger.debug(queryResponse.getAll().size() + " user objects queried from AD.");
-                return queryResponse.getAll();
-            } catch (Exception exception) {
-                logger.debug("Error occurred while loading users from AD.", exception);
+                    // get all fields needed for entities person and ad account
+                    queryRequest.addRequestedField(Global.ADAttributes.DISPLAY_NAME);
+                    queryRequest.addRequestedField(Global.ADAttributes.DESCRIPTION);
+                    queryRequest.addRequestedField(Global.ADAttributes.ACCOUNT_EXPIRES);
+                    queryRequest.addRequestedField(Global.ADAttributes.SID);
+                    queryRequest.addRequestedField(FieldType.LOGON_NAME);
+                    queryRequest.addRequestedField(FieldType.DISTINGUISHED_NAME);
+                    queryRequest.addRequestedField(FieldType.FIRST_NAME);
+                    queryRequest.addRequestedField(FieldType.LAST_NAME);
+                    queryRequest.addRequestedField(FieldType.DEPARTMENT);
+                    queryRequest.addRequestedField(FieldType.EMAIL);
+                    queryRequest.addRequestedField(FieldType.PHONE_NUMBER);
+                    queryRequest.addRequestedField(FieldType.MOBILE_PHONE);
+                    queryRequest.addRequestedField(FieldType.USER_ACCOUNT_CONTROL);
+                    queryRequest.addRequestedField(FieldType.CREATION_TIME); // possible employee entry date
+                    Connector connector = new Connector(queryRequest);
+                    QueryResponse queryResponse = connector.execute();
+                    logger.debug(queryResponse.getAll().size() + " user objects queried from AD.");
+                    return queryResponse.getAll();
+                } catch (Exception exception) {
+                    logger.debug("Error occurred while loading users from AD.", exception);
+                }
             }
         }
         return new ArrayList<>();
@@ -983,21 +995,24 @@ public class IdentityService {
 
     private List<EntityResponse> getADGroupEntities() {
         if (isConnected) {
-            try {
-                queryRequest.setObjectType(ObjectType.GROUP);
-                // get all fields needed for entity ad group
-                queryRequest.addRequestedField(Global.ADAttributes.GROUP_TYPE);
-                queryRequest.addRequestedField(Global.ADAttributes.DESCRIPTION);
-                queryRequest.addRequestedField(Global.ADAttributes.SID);
-                queryRequest.addRequestedField(FieldType.COMMON_NAME);
-                queryRequest.addRequestedField(FieldType.DISTINGUISHED_NAME);
-                queryRequest.addRequestedField(FieldType.MEMBER);
-                Connector connector = new Connector(queryRequest);
-                QueryResponse queryResponse = connector.execute();
-                logger.debug(queryResponse.getAll().size() + " group objects queried from AD.");
-                return queryResponse.getAll();
-            } catch (Exception exception) {
-                logger.debug("Error occurred while loading groups from AD.", exception);
+            QueryRequest queryRequest = createQueryRequest();
+            if (queryRequest != null) {
+                try {
+                    queryRequest.setObjectType(ObjectType.GROUP);
+                    // get all fields needed for entity ad group
+                    queryRequest.addRequestedField(Global.ADAttributes.GROUP_TYPE);
+                    queryRequest.addRequestedField(Global.ADAttributes.DESCRIPTION);
+                    queryRequest.addRequestedField(Global.ADAttributes.SID);
+                    queryRequest.addRequestedField(FieldType.COMMON_NAME);
+                    queryRequest.addRequestedField(FieldType.DISTINGUISHED_NAME);
+                    queryRequest.addRequestedField(FieldType.MEMBER);
+                    Connector connector = new Connector(queryRequest);
+                    QueryResponse queryResponse = connector.execute();
+                    logger.debug(queryResponse.getAll().size() + " group objects queried from AD.");
+                    return queryResponse.getAll();
+                } catch (Exception exception) {
+                    logger.debug("Error occurred while loading groups from AD.", exception);
+                }
             }
         }
         return new ArrayList<>();
