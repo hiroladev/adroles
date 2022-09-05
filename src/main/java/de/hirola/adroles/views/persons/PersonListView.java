@@ -1,5 +1,6 @@
 package de.hirola.adroles.views.persons;
 
+import com.google.common.eventbus.Subscribe;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
@@ -10,6 +11,7 @@ import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Person;
 import de.hirola.adroles.service.IdentityService;
 import de.hirola.adroles.util.ServiceResult;
+import de.hirola.adroles.util.ServiceEvent;
 import de.hirola.adroles.views.MainLayout;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
@@ -30,7 +32,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import javax.annotation.security.PermitAll;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Route(value="persons", layout = MainLayout.class)
 @PageTitle("Persons | AD-Roles")
@@ -39,6 +40,7 @@ public class PersonListView extends VerticalLayout {
 
     private final Logger logger = LoggerFactory.getLogger(PersonListView.class);
     private final IdentityService identityService;
+    private ProgressModalDialog progressModalDialog;
     private final List<Person> selectedPersons = new ArrayList<>();
     private PersonForm personForm;
     private PersonAssignADUserForm assignADUserForm;
@@ -51,7 +53,7 @@ public class PersonListView extends VerticalLayout {
         this.identityService = identityService;
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            identityService.setSessionValues(authentication.getName());
+            identityService.setSessionValues(this, authentication.getName());
         } catch (RuntimeException exception) {
             logger.debug("Could not determine currently user.", exception);
         }
@@ -60,6 +62,26 @@ public class PersonListView extends VerticalLayout {
         addComponents();
         enableComponents(true);
         updateList();
+    }
+
+    @Subscribe
+    public void onServiceEvent(ServiceEvent event) {
+        if (getUI().isPresent()) {
+            getUI().get().access(() -> {
+                if (progressModalDialog != null) {
+                    progressModalDialog.close();
+                    ServiceResult serviceResult = event.getServiceResult();
+                    if (serviceResult.operationSuccessful) {
+                        NotificationPopUp.show(NotificationPopUp.INFO,
+                                getTranslation("import.successful"), serviceResult.resultMessage);
+                    } else {
+                        NotificationPopUp.show(NotificationPopUp.ERROR,
+                                getTranslation("error.import"), serviceResult.resultMessage);
+                    }
+                    updateList();
+                }
+            });
+        }
     }
 
     private void addComponents() {
@@ -232,33 +254,13 @@ public class PersonListView extends VerticalLayout {
             messageArea.setValue(getTranslation("assignPersonsToRoles.dialog.message"));
 
             Button okButton = new Button("Ok", clickEvent -> {
+                progressModalDialog = new ProgressModalDialog(
+                        "update",
+                        "import.running.message",
+                        "import.running.subMessage");
+                progressModalDialog.open();
                 new Thread(() -> {
-                    AtomicReference<ProgressModalDialog> notification = new AtomicReference<>();
-                    getUI().ifPresent(ui -> ui.access(() -> {
-                        ProgressModalDialog progressModalDialog = new ProgressModalDialog(
-                                "update",
-                                "import.running.message",
-                                "import.running.subMessage");
-                        notification.set(progressModalDialog);
-                        notification.get().open();
-                    }));
-
-                    ServiceResult serviceResult = identityService.assignPersonsToRoles(selectedPersons);
-                    if (serviceResult.operationSuccessful) {
-                        getUI().ifPresent(ui -> ui.access(() -> notification.get().close()));
-                        getUI().ifPresent(ui -> ui.access(() -> {
-                            NotificationPopUp.show(NotificationPopUp.INFO,
-                                getTranslation("import.successful"), serviceResult.resultMessage);
-                            updateList();
-                        }));
-                    } else {
-                        getUI().ifPresent(ui -> ui.access(() -> notification.get().close()));
-                        getUI().ifPresent(ui -> ui.access(() -> {
-                            NotificationPopUp.show(NotificationPopUp.ERROR,
-                                getTranslation("error.import"), serviceResult.resultMessage);
-                            updateList();
-                        }));
-                    }
+                    identityService.assignPersonsToRoles(selectedPersons);
                 }).start();
                 dialog.close();
             });

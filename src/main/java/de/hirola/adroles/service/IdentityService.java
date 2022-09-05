@@ -8,16 +8,19 @@
 
 package de.hirola.adroles.service;
 
+import com.google.common.eventbus.EventBus;
 import com.imperva.ddc.core.Connector;
 import com.imperva.ddc.core.language.PhraseOperator;
 import com.imperva.ddc.core.language.QueryAssembler;
 import com.imperva.ddc.core.language.SentenceOperator;
 import com.imperva.ddc.core.query.*;
 import com.imperva.ddc.service.DirectoryConnectorService;
+import com.vaadin.flow.component.Component;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.*;
 import de.hirola.adroles.data.repository.*;
 import de.hirola.adroles.util.ServiceResult;
+import de.hirola.adroles.util.ServiceEvent;
 import org.apache.directory.api.util.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +45,7 @@ import java.util.regex.Pattern;
 @Service
 public class IdentityService {
     private final Logger logger = LoggerFactory.getLogger(IdentityService.class);
+    private final EventBus eventBus = new EventBus();
     private String sessionUserName;
     private final Endpoint endpoint = new Endpoint();
     private boolean isConnected;
@@ -75,7 +79,8 @@ public class IdentityService {
         }
     }
 
-    public void setSessionValues(String sessionUserName) {
+    public void setSessionValues(Component listener, String sessionUserName) {
+        eventBus.register(listener);
         if (sessionUserName == null) {
             return;
         }
@@ -558,13 +563,10 @@ public class IdentityService {
         }
     }
 
-    public ServiceResult assignPersonsToRoles(List<Person> persons) {
+    public void assignPersonsToRoles(@NotNull List<Person> persons) {
         try {
             int assignedPersonsCount = 0;
             int assignedRolesCount = 0;
-            if (persons == null) {
-                return new ServiceResult(false, "The list of persons is empty.");
-            }
             for (Person person : persons) {
                 // get managed AD users of person
                 List<ADUser> assignedADUsers = adUserRepository.findByPerson_IdAndIsRoleManagedTrue(person.getId());
@@ -593,11 +595,13 @@ public class IdentityService {
             String resultMessage = assignedPersonsCount + " from " + persons.size() + " persons assigned to "
                     + assignedRolesCount + " roles";
             logger.debug(resultMessage);
-            return new ServiceResult(true, resultMessage);
+            eventBus.post(new ServiceEvent(this,
+                    new ServiceResult(true, resultMessage)));
         } catch (Exception exception) {
             String resultMessage = "Error while assign persons to roles automatically: " + exception.getMessage();
             logger.debug(resultMessage, exception);
-            return new ServiceResult(false, resultMessage);
+            eventBus.post(new ServiceEvent(this,
+                    new ServiceResult(false, resultMessage)));
         }
     }
 
