@@ -1,6 +1,8 @@
 package de.hirola.adroles.views.persons;
 
 import com.google.common.eventbus.Subscribe;
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
@@ -51,17 +53,29 @@ public class PersonListView extends VerticalLayout {
 
     public PersonListView(IdentityService identityService) {
         this.identityService = identityService;
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            identityService.setSessionValues(this, authentication.getName());
-        } catch (RuntimeException exception) {
-            logger.debug("Could not determine currently user.", exception);
-        }
         addClassName("persons-list-view");
         setSizeFull();
         addComponents();
         enableComponents(true);
         updateList();
+    }
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            identityService.register(this, authentication.getName());
+        } catch (RuntimeException exception) {
+            logger.debug("Could not determine currently user.", exception);
+        }
+
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        super.onDetach(detachEvent);
+        identityService.unregister(this);
     }
 
     @Subscribe

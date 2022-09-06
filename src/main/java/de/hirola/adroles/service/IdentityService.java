@@ -79,12 +79,16 @@ public class IdentityService {
         }
     }
 
-    public void setSessionValues(Component listener, String sessionUserName) {
+    public void register(Component listener, String sessionUserName) {
         eventBus.register(listener);
         if (sessionUserName == null) {
             return;
         }
         this.sessionUserName = sessionUserName;
+    }
+
+    public void unregister(Component listener) {
+        eventBus.unregister(listener);
     }
 
     public @Nullable RoleResource getRoleResource(int type) {
@@ -606,13 +610,14 @@ public class IdentityService {
     }
 
     @Transactional
-    public ServiceResult updateRolesFromGroups() {
+    public void updateRolesFromGroups() {
         try {
             if (adGroupRepository.count() == 0) {
                 String resultMessage = "Update roles from AD groups failed. " +
                         "There are AD groups in database. Please import from AD first.";
                 logger.debug(resultMessage);
-                return new ServiceResult(false, resultMessage);
+                eventBus.post(new ServiceEvent(this,
+                        new ServiceResult(false, resultMessage)));
             }
             int added = 0, updated = 0;
             List<ADGroup> adGroups = adGroupRepository.findAll();
@@ -643,11 +648,13 @@ public class IdentityService {
             }
             String resultMessage = added + " roles added and " + updated + " roles updated from AD groups";
             addLogEntry(resultMessage);
-            return new ServiceResult(true, resultMessage);
+            eventBus.post(new ServiceEvent(this,
+                    new ServiceResult(true, resultMessage)));
         } catch (Exception exception) {
             String resultMessage = "Update roles from AD groups failed.";
             logger.debug(resultMessage, exception);
-            return new ServiceResult(false, resultMessage);
+            eventBus.post(new ServiceEvent(this,
+                    new ServiceResult(false, resultMessage)));
         }
     }
 

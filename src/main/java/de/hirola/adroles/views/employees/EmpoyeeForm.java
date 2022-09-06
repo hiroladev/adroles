@@ -7,6 +7,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -94,11 +95,7 @@ public class EmpoyeeForm extends VerticalLayout {
     exitDate.setHelperText(getTranslation("dateHelperText"));
     add(exitDate);
 
-    TextField adUserGridLabel = new TextField();
-    adUserGridLabel.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
-    adUserGridLabel.setReadOnly(true);
-    adUserGridLabel.setValue(getTranslation("adUsers.assigned"));
-    add(adUserGridLabel);
+    add(new H3(getTranslation("adUsers.assigned")));
 
     adUserGrid.addClassNames("ad-user-grid");
     adUserGrid.setSizeFull();
@@ -115,11 +112,7 @@ public class EmpoyeeForm extends VerticalLayout {
     adUserGrid.setSelectionMode(Grid.SelectionMode.NONE);
     add(adUserGrid);
 
-    TextField roleGridLabel = new TextField();
-    roleGridLabel.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
-    roleGridLabel.setReadOnly(true);
-    roleGridLabel.setValue(getTranslation("roles.assigned"));
-    add(roleGridLabel);
+    add(new H3(getTranslation("roles.assigned")));
 
     rolesGrid.addClassNames("roles-grid");
     rolesGrid.setSizeFull();

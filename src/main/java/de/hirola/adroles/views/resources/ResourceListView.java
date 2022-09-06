@@ -57,7 +57,7 @@ public class ResourceListView extends VerticalLayout {
         this.identityService = identityService;
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            identityService.setSessionValues(this, authentication.getName());
+            identityService.register(this, authentication.getName());
         } catch (RuntimeException exception) {
             logger.debug("Could not determine currently user.", exception);
         }

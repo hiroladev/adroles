@@ -1,5 +1,8 @@
 package de.hirola.adroles.views.adgroups;
 
+import com.google.common.eventbus.Subscribe;
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -17,10 +20,18 @@ import com.vaadin.flow.router.Route;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.ADGroup;
 import de.hirola.adroles.service.IdentityService;
+import de.hirola.adroles.util.ServiceEvent;
+import de.hirola.adroles.util.ServiceResult;
 import de.hirola.adroles.views.MainLayout;
 import de.hirola.adroles.views.NotificationPopUp;
+import de.hirola.adroles.views.ProgressModalDialog;
+import de.hirola.adroles.views.adusers.ADUserListView;
 import de.hirola.adroles.views.persons.PersonAssignRoleForm;
 import de.hirola.adroles.views.persons.PersonForm;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.annotation.security.PermitAll;
 import java.util.ArrayList;
@@ -30,8 +41,10 @@ import java.util.List;
 @PageTitle("AD-Groups | AD-Roles")
 @PermitAll
 public class ADGroupListView extends VerticalLayout {
+    private final Logger logger = LoggerFactory.getLogger(ADGroupListView.class);
     private final IdentityService identityService;
     private final List<ADGroup> selectedADGroups = new ArrayList<>();
+    private ProgressModalDialog progressModalDialog;
     private ADGroupForm adGroupForm;
     private PersonAssignRoleForm assignRoleForm;
     private final Grid<ADGroup> grid = new Grid<>(ADGroup.class, false);
@@ -46,6 +59,44 @@ public class ADGroupListView extends VerticalLayout {
         updateList();
         closeADGroupForm();
         closeAssignRolesForm();
+    }
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            identityService.register(this, authentication.getName());
+        } catch (RuntimeException exception) {
+            logger.debug("Could not determine currently user.", exception);
+        }
+
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        super.onDetach(detachEvent);
+        identityService.unregister(this);
+    }
+
+    @Subscribe
+    public void onServiceEvent(ServiceEvent event) {
+        if (getUI().isPresent()) {
+            getUI().get().access(() -> {
+                if (progressModalDialog != null) {
+                    progressModalDialog.close();
+                    ServiceResult serviceResult = event.getServiceResult();
+                    if (serviceResult.operationSuccessful) {
+                        NotificationPopUp.show(NotificationPopUp.INFO,
+                                getTranslation("import.successful"), serviceResult.resultMessage);
+                    } else {
+                        NotificationPopUp.show(NotificationPopUp.ERROR,
+                                getTranslation("error.import"), serviceResult.resultMessage);
+                    }
+                    updateList();
+                }
+            });
+        }
     }
 
     private void addComponents() {
@@ -124,39 +175,32 @@ public class ADGroupListView extends VerticalLayout {
     private void importADGroups() {
         Dialog dialog = new Dialog();
         dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
-        if (identityService.countADGroups() > 0) {
-            // data can be override
-            dialog.setHeaderTitle(getTranslation("question.updateData"));
+        dialog.setHeaderTitle(getTranslation("question.updateData"));
 
-            TextArea messageArea = new TextArea();
-            messageArea.setWidthFull();
-            messageArea.setValue(getTranslation("adGroup.importFromActiveDirectory.dialog.message"));
+        TextArea messageArea = new TextArea();
+        messageArea.setWidthFull();
+        messageArea.setValue(getTranslation("adGroup.importFromActiveDirectory.dialog.message"));
 
-            Button okButton = new Button("Ok", clickEvent -> {
-                dialog.close();
-                if (!identityService.updateGroupsFromAD()) {
-                    NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
-                }
-                updateList();
-            });
-            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-            okButton.getStyle().set("margin-right", "auto");
-
-            Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
-            cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-            dialog.add(messageArea);
-            dialog.getFooter().add(okButton);
-            dialog.getFooter().add(cancelButton);
-
-            dialog.open();
-        } else {
+        Button okButton = new Button("Ok", clickEvent -> {
+            progressModalDialog = new ProgressModalDialog(
+                    "update",
+                    "import.running.message",
+                    "import.running.subMessage");
+            progressModalDialog.open();
+            new Thread(identityService::updateGroupsFromAD).start();
             dialog.close();
-            if (!identityService.updateGroupsFromAD()) {
-                NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
-            }
-            updateList();
-        }
+        });
+        okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
+        okButton.getStyle().set("margin-right", "auto");
+
+        Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
+        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        dialog.add(messageArea);
+        dialog.getFooter().add(okButton);
+        dialog.getFooter().add(cancelButton);
+
+        dialog.open();
     }
 
     private void addADgroup() {

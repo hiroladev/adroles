@@ -14,6 +14,7 @@ import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -56,11 +57,7 @@ public class RoleForm extends VerticalLayout {
     description.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
     add(description);
 
-    TextField personGridLabel = new TextField();
-    personGridLabel.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
-    personGridLabel.setReadOnly(true);
-    personGridLabel.setValue(getTranslation("persons.assigned"));
-    add(personGridLabel);
+    add(new H3(getTranslation("persons.assigned")));
 
     personGrid.addClassNames("person-grid");
     personGrid.setSizeFull();
@@ -75,11 +72,7 @@ public class RoleForm extends VerticalLayout {
     personGrid.setSelectionMode(Grid.SelectionMode.NONE);
     add(personGrid);
 
-    TextField adUserGridLabel = new TextField();
-    adUserGridLabel.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
-    adUserGridLabel.setReadOnly(true);
-    adUserGridLabel.setValue(getTranslation("adUsers.assigned"));
-    add(adUserGridLabel);
+    add(new H3(getTranslation("adUsers.assigned")));
 
     adUserGrid.addClassNames("ad-user-grid");
     adUserGrid.setSizeFull();
@@ -95,11 +88,7 @@ public class RoleForm extends VerticalLayout {
     adUserGrid.setSelectionMode(Grid.SelectionMode.NONE);
     add(adUserGrid);
 
-    TextField adGroupGridLabel = new TextField();
-    adGroupGridLabel.setWidth(Global.Component.DEFAULT_TEXT_FIELD_WIDTH);
-    adGroupGridLabel.setReadOnly(true);
-    adGroupGridLabel.setValue(getTranslation("adGroups.assigned"));
-    add(adGroupGridLabel);
+    add(new H3(getTranslation("adGroups.assigned")));
 
     adGroupGrid.addClassNames("ad-group-grid");
     adGroupGrid.setSizeFull();

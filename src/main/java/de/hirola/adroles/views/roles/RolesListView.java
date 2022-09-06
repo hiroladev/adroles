@@ -1,5 +1,8 @@
 package de.hirola.adroles.views.roles;
 
+import com.google.common.eventbus.Subscribe;
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -22,6 +25,7 @@ import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Role;
 import de.hirola.adroles.data.entity.RoleResource;
 import de.hirola.adroles.service.IdentityService;
+import de.hirola.adroles.util.ServiceEvent;
 import de.hirola.adroles.util.ServiceResult;
 import de.hirola.adroles.views.MainLayout;
 import de.hirola.adroles.views.NotificationPopUp;
@@ -44,6 +48,7 @@ import java.util.stream.Stream;
 public class RolesListView extends VerticalLayout {
     private Logger logger = LoggerFactory.getLogger(RolesListView.class);
     private final Hashtable<String, RoleResource> roleResourceList = new Hashtable<>();
+    private ProgressModalDialog progressModalDialog;
     private RoleContextMenu contextMenu;
     private RoleForm roleForm;
     private RoleAssignPersonForm assignPersonForm;
@@ -60,7 +65,7 @@ public class RolesListView extends VerticalLayout {
         this.identityService = identityService;
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            identityService.setSessionValues(this, authentication.getName());
+            identityService.register(this, authentication.getName());
         } catch (RuntimeException exception) {
             logger.debug("Could not determine currently user.", exception);
         }
@@ -70,6 +75,44 @@ public class RolesListView extends VerticalLayout {
         addComponents();
         updateList();
         enableComponents(true);
+    }
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            identityService.register(this, authentication.getName());
+        } catch (RuntimeException exception) {
+            logger.debug("Could not determine currently user.", exception);
+        }
+
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        super.onDetach(detachEvent);
+        identityService.unregister(this);
+    }
+
+    @Subscribe
+    public void onServiceEvent(ServiceEvent event) {
+        if (getUI().isPresent()) {
+            getUI().get().access(() -> {
+                if (progressModalDialog != null) {
+                    progressModalDialog.close();
+                    ServiceResult serviceResult = event.getServiceResult();
+                    if (serviceResult.operationSuccessful) {
+                        NotificationPopUp.show(NotificationPopUp.INFO,
+                                getTranslation("import.successful"), serviceResult.resultMessage);
+                    } else {
+                        NotificationPopUp.show(NotificationPopUp.ERROR,
+                                getTranslation("error.import"), serviceResult.resultMessage);
+                    }
+                    updateList();
+                }
+            });
+        }
     }
 
     private void addComponents() {
@@ -222,34 +265,12 @@ public class RolesListView extends VerticalLayout {
         messageArea.setValue(getTranslation("updateRolesFromGroups.dialog.message"));
 
         Button okButton = new Button("Ok", clickEvent -> {
-            new Thread(() -> {
-                AtomicReference<ProgressModalDialog> notification = new AtomicReference<>();
-                getUI().ifPresent(ui -> ui.access(() -> {
-                    ProgressModalDialog progressModalDialog = new ProgressModalDialog(
-                            "update",
-                            "import.running.message",
-                            "import.running.subMessage");
-                    notification.set(progressModalDialog);
-                    notification.get().open();
-                }));
-
-                ServiceResult serviceResult = identityService.updateRolesFromGroups();
-                if (serviceResult.operationSuccessful) {
-                    getUI().ifPresent(ui -> ui.access(() -> notification.get().close()));
-                    getUI().ifPresent(ui -> ui.access(() -> {
-                        NotificationPopUp.show(NotificationPopUp.INFO,
-                                getTranslation("import.successful"), serviceResult.resultMessage);
-                        updateList();
-                    }));
-                } else {
-                    getUI().ifPresent(ui -> ui.access(() -> notification.get().close()));
-                    getUI().ifPresent(ui -> ui.access(() -> {
-                        NotificationPopUp.show(NotificationPopUp.ERROR,
-                                getTranslation("error.import"), serviceResult.resultMessage);
-                        updateList();
-                    }));
-                }
-            }).start();
+            progressModalDialog = new ProgressModalDialog(
+                    "update",
+                    "import.running.message",
+                    "import.running.subMessage");
+            progressModalDialog.open();
+            new Thread(identityService::updateRolesFromGroups).start();
             dialog.close();
         });
         okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
