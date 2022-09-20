@@ -5,7 +5,7 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.html.Hr;
@@ -14,7 +14,6 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.provider.QuerySortOrder;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
@@ -39,14 +38,13 @@ import javax.annotation.security.PermitAll;
 import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 @Route(value="roles", layout = MainLayout.class)
 @PageTitle("Roles Overview | AD-Roles")
 @PermitAll
 public class RolesListView extends VerticalLayout {
-    private Logger logger = LoggerFactory.getLogger(RolesListView.class);
+    private final Logger logger = LoggerFactory.getLogger(RolesListView.class);
     private final Hashtable<String, RoleResource> roleResourceList = new Hashtable<>();
     private ProgressModalDialog progressModalDialog;
     private RoleContextMenu contextMenu;
@@ -84,6 +82,7 @@ public class RolesListView extends VerticalLayout {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             identityService.register(this, authentication.getName());
         } catch (RuntimeException exception) {
+            identityService.register(this, null);
             logger.debug("Could not determine currently user.", exception);
         }
 
@@ -199,7 +198,7 @@ public class RolesListView extends VerticalLayout {
         grid.addItemClickListener(event -> editRole(event.getItem()));
         grid.addSelectionListener(selection -> {
             selectedRoles.clear();
-            if (selection.getAllSelectedItems().size() == 0) {
+            if (selection.getAllSelectedItems().isEmpty()) {
                 deleteRolesButton.setEnabled(false);
                 contextMenu.setEnabled(false);
             } else {
@@ -242,9 +241,9 @@ public class RolesListView extends VerticalLayout {
 
         FlexLayout content = new FlexLayout(grid, contextMenu, roleForm,
                 assignPersonForm, assignADUserForm, assignADGroupForm);
-        content.setFlexGrow(2, grid);
-        content.setFlexGrow(1, roleForm, assignPersonForm, assignADUserForm, assignADGroupForm);
-        content.setFlexShrink(0, roleForm, assignPersonForm, assignADUserForm, assignADGroupForm);
+        content.setFlexGrow(2.0, grid);
+        content.setFlexGrow(1.0, roleForm, assignPersonForm, assignADUserForm, assignADGroupForm);
+        content.setFlexShrink((double) 0, roleForm, assignPersonForm, assignADUserForm, assignADGroupForm);
         content.addClassNames("content", "gap-m");
         content.setSizeFull();
 
@@ -256,33 +255,23 @@ public class RolesListView extends VerticalLayout {
     }
 
     private void importRolesFromGroups() {
-        Dialog dialog = new Dialog();
-        dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
-        dialog.setHeaderTitle(getTranslation("question.updateData"));
-
-        TextArea messageArea = new TextArea();
-        messageArea.setWidthFull();
-        messageArea.setValue(getTranslation("updateRolesFromGroups.dialog.message"));
-
-        Button okButton = new Button("Ok", clickEvent -> {
-            progressModalDialog = new ProgressModalDialog(
-                    "update",
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader(getTranslation("question.updateData"));
+        dialog.setText(getTranslation("updateRolesFromGroups.dialog.message"));
+        dialog.setCancelable(true);
+        dialog.addCancelListener(clickEvent -> dialog.close());
+        dialog.setRejectable(false);
+        dialog.setConfirmText("Ok");
+        dialog.addConfirmListener(clickEvent -> {
+            if (progressModalDialog == null) {
+                progressModalDialog = new ProgressModalDialog();
+            }
+            progressModalDialog.open("update",
                     "import.running.message",
                     "import.running.subMessage");
-            progressModalDialog.open();
             new Thread(identityService::updateRolesFromGroups).start();
             dialog.close();
         });
-        okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        okButton.getStyle().set("margin-right", "auto");
-
-        Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
-        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-        dialog.add(messageArea);
-        dialog.getFooter().add(okButton);
-        dialog.getFooter().add(cancelButton);
-
         dialog.open();
     }
 
@@ -300,7 +289,7 @@ public class RolesListView extends VerticalLayout {
         closeRoleForm();
     }
 
-    public void editRole(Role role) {
+    private void editRole(Role role) {
         if (role == null) {
             closeRoleForm();
         } else {
@@ -312,30 +301,23 @@ public class RolesListView extends VerticalLayout {
     }
 
     private void deleteRoles() {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle(getTranslation("question.delete"));
-
-        Button okButton = new Button("Ok", clickEvent -> {
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader(getTranslation("question.delete"));
+        dialog.setCancelable(true);
+        dialog.addCancelListener(clickEvent -> {
+            grid.deselectAll();
+            dialog.close();
+        });
+        dialog.setRejectable(false);
+        dialog.setConfirmText("Ok");
+        dialog.addConfirmListener(clickEvent -> {
             identityService.deleteRoles(selectedRoles);
             updateList();
             selectedRoles.clear();
             deleteRolesButton.setEnabled(false);
             dialog.close();
         });
-        okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        okButton.getStyle().set("margin-right", "auto");
-
-        Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> {
-            grid.deselectAll();
-            dialog.close();
-        });
-        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-        dialog.getFooter().add(okButton);
-        dialog.getFooter().add(cancelButton);
-
         dialog.open();
-
     }
 
     private void assignPersons(RoleForm.AssignPersonsEvent event) {
@@ -416,7 +398,7 @@ public class RolesListView extends VerticalLayout {
     }
 
     private void updateResourceOfSelectedRoles(int type) {
-        if (selectedRoles.size() > 0) {
+        if (!selectedRoles.isEmpty()) {
             RoleResource roleResource = identityService.getRoleResource(type);
             if (roleResource != null) {
                 for (Role role : selectedRoles) {
@@ -471,12 +453,12 @@ public class RolesListView extends VerticalLayout {
         filterTextField.setEnabled(enabled);
         addRoleButton.setEnabled(enabled);
         importFromJSONButton.setEnabled(enabled);
-        if (selectedRoles.size() == 0) {
+        if (selectedRoles.isEmpty()) {
             deleteRolesButton.setEnabled(false);
         } else {
             deleteRolesButton.setEnabled(enabled);
         }
-        if (identityService.countADGroups() == 0) {
+        if (identityService.countADGroups() == 0L) {
             updateButton.setEnabled(false);
         } else {
             updateButton.setEnabled(enabled);
@@ -486,7 +468,7 @@ public class RolesListView extends VerticalLayout {
     private static class RoleContextMenu extends GridContextMenu<Role> {
 
         private final RolesListView listView;
-        public RoleContextMenu(Grid<Role> target, RolesListView listView) {
+        RoleContextMenu(Grid<Role> target, RolesListView listView) {
             super(target);
             this.listView = listView;
 
@@ -508,23 +490,16 @@ public class RolesListView extends VerticalLayout {
         }
 
         private void showDialogForType(int type) {
-            Dialog dialog = new Dialog();
-            dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
-            dialog.setHeaderTitle(getTranslation("question.roleResourceChange"));
-
-            Button okButton = new Button("Ok", clickEvent -> {
+            ConfirmDialog dialog = new ConfirmDialog();
+            dialog.setHeader(getTranslation("question.roleResourceChange"));
+            dialog.setCancelable(true);
+            dialog.addCancelListener(clickEvent -> dialog.close());
+            dialog.setRejectable(false);
+            dialog.setConfirmText("Ok");
+            dialog.addConfirmListener(clickEvent -> {
                 listView.updateResourceOfSelectedRoles(type);
                 dialog.close();
             });
-            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-            okButton.getStyle().set("margin-right", "auto");
-
-            Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> dialog.close());
-            cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-            dialog.getFooter().add(okButton);
-            dialog.getFooter().add(cancelButton);
-
             dialog.open();
         }
     }

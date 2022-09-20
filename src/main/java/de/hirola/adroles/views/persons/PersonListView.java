@@ -4,11 +4,10 @@ import com.google.common.eventbus.Subscribe;
 import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.contextmenu.GridContextMenu;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.textfield.TextArea;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.Person;
 import de.hirola.adroles.service.IdentityService;
@@ -34,6 +33,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import javax.annotation.security.PermitAll;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Route(value="persons", layout = MainLayout.class)
 @PageTitle("Persons | AD-Roles")
@@ -67,6 +67,7 @@ public class PersonListView extends VerticalLayout {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             identityService.register(this, authentication.getName());
         } catch (RuntimeException exception) {
+            identityService.register(this, null);
             logger.debug("Could not determine currently user.", exception);
         }
 
@@ -156,7 +157,7 @@ public class PersonListView extends VerticalLayout {
         grid.addItemClickListener(event -> editPerson(event.getItem()));
         grid.addSelectionListener(selection -> {
             selectedPersons.clear();
-            if (selection.getAllSelectedItems().size() == 0) {
+            if (selection.getAllSelectedItems().isEmpty()) {
                 deletePersonsButton.setEnabled(false);
                 assignToRolesButton.setEnabled(false);
             } else {
@@ -192,50 +193,46 @@ public class PersonListView extends VerticalLayout {
         PersonContextMenu contextMenu = new PersonContextMenu(grid, this);
 
         FlexLayout content = new FlexLayout(grid, contextMenu, personForm, assignADUserForm, assignRoleForm);
-        content.setFlexGrow(2, grid);
-        content.setFlexGrow(1, personForm, assignADUserForm, assignRoleForm);
-        content.setFlexShrink(0, personForm, assignADUserForm, assignRoleForm);
+        content.setFlexGrow(2.0, grid);
+        content.setFlexGrow(1.0, personForm, assignADUserForm, assignRoleForm);
+        content.setFlexShrink((double) 0, personForm, assignADUserForm, assignRoleForm);
         content.addClassNames("content", "gap-m");
         content.setSizeFull();
 
         add(toolbar, content);
     }
     
-    private void importPersons() { //TODO: show progress bar
-        Dialog dialog = new Dialog();
-        dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
-        if (identityService.countPersons() > 0) {
+    private void importPersons() {
+        ConfirmDialog dialog = new ConfirmDialog();
+        if (identityService.countPersons() > 0L) {
             updateButton.setEnabled(false);
             // data can be override
-            dialog.setHeaderTitle(getTranslation("question.updateData"));
-
-            TextArea messageArea = new TextArea();
-            messageArea.setWidthFull();
-            messageArea.setValue(getTranslation("updatePersonsFromActiveDirectory.dialog.message"));
-
-            Button okButton = new Button("Ok", clickEvent -> {
-                dialog.close();
-                if (!identityService.updatePersonsFromAD()) {
-                    NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
+            dialog.setHeader(getTranslation("question.updateData"));
+            dialog.setText(getTranslation("updatePersonsFromActiveDirectory.dialog.message"));
+            dialog.setCancelable(true);
+            dialog.addCancelListener(clickEvent -> dialog.close());
+            dialog.setRejectable(false);
+            dialog.setConfirmText("Ok");
+            dialog.addConfirmListener(clickEvent -> {
+                if (progressModalDialog == null) {
+                    progressModalDialog = new ProgressModalDialog();
                 }
-                updateList();
+                progressModalDialog.open("update",
+                        "import.running.message",
+                        "import.running.subMessage");
+                new Thread(identityService::updatePersonsFromAD).start();
+                dialog.close();
             });
-            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-            okButton.getStyle().set("margin-right", "auto");
-
-            Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
-            cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-            dialog.add(messageArea);
-            dialog.getFooter().add(okButton);
-            dialog.getFooter().add(cancelButton);
             dialog.open();
         } else {
-            dialog.close();
-            if (!identityService.updatePersonsFromAD()) {
-                NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
+            if (progressModalDialog == null) {
+                progressModalDialog = new ProgressModalDialog();
             }
-            updateList();
+            progressModalDialog.open("update",
+                    "import.running.message",
+                    "import.running.subMessage");
+            new Thread(identityService::updatePersonsFromAD).start();
+            dialog.close();
         }
     }
 
@@ -258,36 +255,27 @@ public class PersonListView extends VerticalLayout {
     }
 
     private void assignRoles() {
-        Dialog dialog = new Dialog();
-        dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
-        if (selectedPersons.size() > 0) {
-            // data can be override
-            dialog.setHeaderTitle(getTranslation("question.updateData"));
-            TextArea messageArea = new TextArea();
-            messageArea.setWidthFull();
-            messageArea.setValue(getTranslation("assignPersonsToRoles.dialog.message"));
+        if (!selectedPersons.isEmpty()) {
+            ConfirmDialog dialog = new ConfirmDialog();
+            dialog.setHeader(getTranslation("question.updateData"));
+            dialog.setText(getTranslation("assignPersonsToRoles.dialog.message"));
 
-            Button okButton = new Button("Ok", clickEvent -> {
-                progressModalDialog = new ProgressModalDialog(
-                        "update",
+            dialog.setCancelable(true);
+            dialog.addCancelListener(clickEvent -> dialog.close());
+
+            dialog.setRejectable(false);
+
+            dialog.setConfirmText("Ok");
+            dialog.addConfirmListener(clickEvent -> {
+                if (progressModalDialog == null) {
+                    progressModalDialog = new ProgressModalDialog();
+                }
+                progressModalDialog.open("update",
                         "import.running.message",
                         "import.running.subMessage");
-                progressModalDialog.open();
-                new Thread(() -> {
-                    identityService.assignPersonsToRoles(selectedPersons);
-                }).start();
+                new Thread(() -> identityService.assignPersonsToRoles(selectedPersons)).start();
                 dialog.close();
             });
-            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-            okButton.getStyle().set("margin-right", "auto");
-
-            Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
-            cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-            dialog.add(messageArea);
-            dialog.getFooter().add(okButton);
-            dialog.getFooter().add(cancelButton);
-            dialog.open();
         }
     }
 
@@ -323,30 +311,23 @@ public class PersonListView extends VerticalLayout {
     }
 
     private void deletePersons() {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle(getTranslation("question.delete"));
-
-        Button okButton = new Button("Ok", clickEvent -> {
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader(getTranslation("question.delete"));
+        dialog.setCancelable(true);
+        dialog.addCancelListener(clickEvent -> {
+            grid.deselectAll();
+            dialog.close();
+        });
+        dialog.setRejectable(false);
+        dialog.setConfirmText("Ok");
+        dialog.addConfirmListener(clickEvent -> {
             identityService.deletePersons(selectedPersons);
             updateList();
             selectedPersons.clear();
             deletePersonsButton.setEnabled(false);
             dialog.close();
         });
-        okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        okButton.getStyle().set("margin-right", "auto");
-
-        Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> {
-            grid.deselectAll();
-            dialog.close();
-        });
-        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-        dialog.getFooter().add(okButton);
-        dialog.getFooter().add(cancelButton);
-
         dialog.open();
-
     }
 
     private void assignRoles(PersonForm.AssignRolesEvent event) {
@@ -404,8 +385,8 @@ public class PersonListView extends VerticalLayout {
         removeClassName("editing");
     }
 
-    private boolean matchesTerm(String value, String searchTerm) {
-        return value.toLowerCase().contains(searchTerm.toLowerCase());
+    private static boolean matchesTerm(String value, String searchTerm) {
+        return value.toLowerCase(Locale.ROOT).contains(searchTerm.toLowerCase(Locale.ROOT));
     }
 
     private void enableComponents(boolean enabled) {
@@ -416,7 +397,7 @@ public class PersonListView extends VerticalLayout {
         assignToRolesButton.setEnabled(enabled);
 
         if (enabled) {
-            if (selectedPersons.size() == 0) {
+            if (selectedPersons.isEmpty()) {
                 deletePersonsButton.setEnabled(false);
                 assignToRolesButton.setEnabled(false);
             }
@@ -429,7 +410,7 @@ public class PersonListView extends VerticalLayout {
     private static class PersonContextMenu extends GridContextMenu<Person> {
 
         private final PersonListView listView;
-        public PersonContextMenu(Grid<Person> target, PersonListView listView) {
+        PersonContextMenu(Grid<Person> target, PersonListView listView) {
             super(target);
             this.listView = listView;
 
@@ -440,22 +421,16 @@ public class PersonListView extends VerticalLayout {
         }
 
         private void showDialog(boolean isEmployee) {
-            Dialog dialog = new Dialog();
-            dialog.setHeaderTitle(getTranslation("question.employeeStatusChange"));
-
-            Button okButton = new Button("Ok", clickEvent -> {
+            ConfirmDialog dialog = new ConfirmDialog();
+            dialog.setHeader(getTranslation("question.employeeStatusChange"));
+            dialog.setCancelable(true);
+            dialog.addCancelListener(clickEvent -> dialog.close());
+            dialog.setRejectable(false);
+            dialog.setConfirmText("Ok");
+            dialog.addConfirmListener(clickEvent -> {
                 listView.updateEmployeeStatusOfSelectedPersons(isEmployee);
                 dialog.close();
             });
-            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-            okButton.getStyle().set("margin-right", "auto");
-
-            Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> dialog.close());
-            cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-            dialog.getFooter().add(okButton);
-            dialog.getFooter().add(cancelButton);
-
             dialog.open();
         }
     }

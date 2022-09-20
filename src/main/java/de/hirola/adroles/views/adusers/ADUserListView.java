@@ -5,14 +5,13 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
@@ -27,7 +26,6 @@ import de.hirola.adroles.views.NotificationPopUp;
 import de.hirola.adroles.views.ProgressModalDialog;
 import de.hirola.adroles.views.persons.PersonAssignRoleForm;
 import de.hirola.adroles.views.persons.PersonForm;
-import de.hirola.adroles.views.persons.PersonListView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -36,6 +34,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import javax.annotation.security.PermitAll;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Route(value="ad-user", layout = MainLayout.class)
 @PageTitle("AD-Users | AD-Roles")
@@ -68,9 +67,9 @@ public class ADUserListView extends VerticalLayout {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             identityService.register(this, authentication.getName());
         } catch (RuntimeException exception) {
+            identityService.register(this, null);
             logger.debug("Could not determine currently user.", exception);
         }
-
     }
 
     @Override
@@ -163,7 +162,7 @@ public class ADUserListView extends VerticalLayout {
         grid.addItemClickListener(event -> editADUser(event.getItem()));
         grid.addSelectionListener(selection -> {
             selectedADUsers.clear();
-            if (selection.getAllSelectedItems().size() == 0) {
+            if (selection.getAllSelectedItems().isEmpty()) {
                 deleteADUsersButton.setEnabled(false);
             } else {
                 deleteADUsersButton.setEnabled(true);
@@ -182,9 +181,9 @@ public class ADUserListView extends VerticalLayout {
         assignRoleForm.addListener(PersonAssignRoleForm.CloseEvent.class, event -> closeAssignRolesForm());
 
         FlexLayout content = new FlexLayout(grid, adUserForm, assignRoleForm);
-        content.setFlexGrow(2, grid);
-        content.setFlexGrow(1, adUserForm, assignRoleForm);
-        content.setFlexShrink(0, adUserForm, assignRoleForm);
+        content.setFlexGrow(2.0, grid);
+        content.setFlexGrow(1.0, adUserForm, assignRoleForm);
+        content.setFlexShrink((double) 0, adUserForm, assignRoleForm);
         content.addClassNames("content", "gap-m");
         content.setSizeFull();
 
@@ -192,33 +191,23 @@ public class ADUserListView extends VerticalLayout {
     }
 
     private void importADUsers() {
-        Dialog dialog = new Dialog();
-        dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
-        dialog.setHeaderTitle(getTranslation("question.updateData"));
-
-        TextArea messageArea = new TextArea();
-        messageArea.setWidthFull();
-        messageArea.setValue(getTranslation("updateADUsersFromActiveDirectory.dialog.message"));
-
-        Button okButton = new Button("Ok", clickEvent -> {
-            progressModalDialog = new ProgressModalDialog(
-                    "update",
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader(getTranslation("question.updateData"));
+        dialog.setText(getTranslation("updateADUsersFromActiveDirectory.dialog.message"));
+        dialog.setCancelable(true);
+        dialog.addCancelListener(clickEvent -> dialog.close());
+        dialog.setRejectable(false);
+        dialog.setConfirmText("Ok");
+        dialog.addConfirmListener(clickEvent -> {
+            if (progressModalDialog == null) {
+                progressModalDialog = new ProgressModalDialog();
+            }
+            progressModalDialog.open("update",
                     "import.running.message",
                     "import.running.subMessage");
-            progressModalDialog.open();
-            new Thread(identityService::updatePersonsFromAD).start();
+            new Thread(identityService::updateUserFromAD).start();
             dialog.close();
         });
-        okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        okButton.getStyle().set("margin-right", "auto");
-
-        Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
-        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-        dialog.add(messageArea);
-        dialog.getFooter().add(okButton);
-        dialog.getFooter().add(cancelButton);
-
         dialog.open();
     }
 
@@ -232,7 +221,7 @@ public class ADUserListView extends VerticalLayout {
         updateList();
     }
 
-    public void editADUser(ADUser adUser) {
+    private void editADUser(ADUser adUser) {
         if (adUser == null) {
             closeADUserForm();
         } else {
@@ -244,30 +233,23 @@ public class ADUserListView extends VerticalLayout {
     }
 
     private void deleteADUsers() {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle(getTranslation("question.delete"));
-
-        Button okButton = new Button("Ok", clickEvent -> {
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader(getTranslation("question.delete"));
+        dialog.setCancelable(true);
+        dialog.addCancelListener(clickEvent -> {
+            grid.deselectAll();
+            dialog.close();
+        });
+        dialog.setRejectable(false);
+        dialog.setConfirmText("Ok");
+        dialog.addConfirmListener(clickEvent -> {
             identityService.deleteADUsers(selectedADUsers);
             updateList();
             selectedADUsers.clear();
             deleteADUsersButton.setEnabled(false);
             dialog.close();
         });
-        okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        okButton.getStyle().set("margin-right", "auto");
-
-        Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> {
-            grid.deselectAll();
-            dialog.close();
-        });
-        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-        dialog.getFooter().add(okButton);
-        dialog.getFooter().add(cancelButton);
-
         dialog.open();
-
     }
 
     private void addRoles(PersonForm.AssignRolesEvent event) {
@@ -308,7 +290,7 @@ public class ADUserListView extends VerticalLayout {
     private void enableComponents(boolean enabled) {
         filterTextField.setEnabled(enabled);
         addADUserButton.setEnabled(enabled);
-        if (selectedADUsers.size() == 0) {
+        if (selectedADUsers.isEmpty()) {
             deleteADUsersButton.setEnabled(false);
         } else {
             deleteADUsersButton.setEnabled(enabled);
@@ -320,7 +302,7 @@ public class ADUserListView extends VerticalLayout {
         }
     }
 
-    private boolean matchesTerm(String value, String searchTerm) {
-        return value.toLowerCase().contains(searchTerm.toLowerCase());
+    private static boolean matchesTerm(String value, String searchTerm) {
+        return value.toLowerCase(Locale.ROOT).contains(searchTerm.toLowerCase(Locale.ROOT));
     }
 }

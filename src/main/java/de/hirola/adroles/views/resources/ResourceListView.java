@@ -1,22 +1,27 @@
 package de.hirola.adroles.views.resources;
 
+import com.google.common.eventbus.Subscribe;
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import de.hirola.adroles.Global;
 import de.hirola.adroles.data.entity.RoleResource;
 import de.hirola.adroles.data.entity.Role;
 import de.hirola.adroles.service.IdentityService;
+import de.hirola.adroles.util.ServiceEvent;
+import de.hirola.adroles.util.ServiceResult;
 import de.hirola.adroles.views.NotificationPopUp;
+import de.hirola.adroles.views.ProgressModalDialog;
 import de.hirola.adroles.views.roles.RoleForm;
 import de.hirola.adroles.views.roles.RoleAssignADGroupForm;
 import de.hirola.adroles.views.roles.RoleAssignPersonForm;
@@ -40,9 +45,10 @@ import java.util.List;
  */
 
 
-public class ResourceListView extends VerticalLayout {
+class ResourceListView extends VerticalLayout {
     private final Logger logger = LoggerFactory.getLogger(ResourceListView.class);
     private final IdentityService identityService;
+    private ProgressModalDialog progressModalDialog;
     private final Hashtable<String, RoleResource> roleResourceList = new Hashtable<>();
     private final RoleResource roleResource;
     private final List<Role> selectedResourceRoles = new ArrayList<>();
@@ -53,12 +59,13 @@ public class ResourceListView extends VerticalLayout {
     private TextField filterTextField;
     private Button addResourceRoleButton, deleteResourceRolesButton, updateButton, importFromJSONButton;
 
-    public ResourceListView(IdentityService identityService, int resourceType) throws InstantiationException {
+    ResourceListView(IdentityService identityService, int resourceType) throws InstantiationException {
         this.identityService = identityService;
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             identityService.register(this, authentication.getName());
         } catch (RuntimeException exception) {
+            identityService.register(this, null);
             logger.debug("Could not determine currently user.", exception);
         }
         roleResource = identityService.getRoleResource(resourceType);
@@ -71,6 +78,44 @@ public class ResourceListView extends VerticalLayout {
         addComponents();
         updateList();
         enableComponents(true);
+    }
+
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            identityService.register(this, authentication.getName());
+        } catch (RuntimeException exception) {
+            identityService.register(this, null);
+            logger.debug("Could not determine currently user.", exception);
+        }
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        super.onDetach(detachEvent);
+        identityService.unregister(this);
+    }
+
+    @Subscribe
+    public void onServiceEvent(ServiceEvent event) {
+        if (getUI().isPresent()) {
+            getUI().get().access(() -> {
+                if (progressModalDialog != null) {
+                    progressModalDialog.close();
+                    ServiceResult serviceResult = event.getServiceResult();
+                    if (serviceResult.operationSuccessful) {
+                        NotificationPopUp.show(NotificationPopUp.INFO,
+                                getTranslation("import.successful"), serviceResult.resultMessage);
+                    } else {
+                        NotificationPopUp.show(NotificationPopUp.ERROR,
+                                getTranslation("error.import"), serviceResult.resultMessage);
+                    }
+                    updateList();
+                }
+            });
+        }
     }
 
     private void addComponents() {
@@ -122,7 +167,7 @@ public class ResourceListView extends VerticalLayout {
             toolbar.add(filterTextField, addResourceRoleButton, deleteResourceRolesButton, importFromJSONButton);
         }
 
-        grid.addClassNames(roleResource.getViewClassName().concat("-grid"));
+        grid.addClassNames(roleResource.getViewClassName() + "-grid");
         grid.setSizeFull();
         grid.addColumn(Role::getName).setHeader(getTranslation("name"))
                 .setKey(Global.Component.FOOTER_COLUMN_KEY)
@@ -136,7 +181,7 @@ public class ResourceListView extends VerticalLayout {
         grid.addItemClickListener(event -> editResource(event.getItem()));
         grid.addSelectionListener(selection -> {
             selectedResourceRoles.clear();
-            if (selection.getAllSelectedItems().size() == 0) {
+            if (selection.getAllSelectedItems().isEmpty()) {
                 deleteResourceRolesButton.setEnabled(false);
             } else {
                 deleteResourceRolesButton.setEnabled(true);
@@ -165,9 +210,9 @@ public class ResourceListView extends VerticalLayout {
         assignADGroupForm.setVisible(false);
 
         FlexLayout content = new FlexLayout(grid, roleForm, assignPersonForm, assignADGroupForm);
-        content.setFlexGrow(2, grid);
-        content.setFlexGrow(1, roleForm, assignPersonForm, assignADGroupForm);
-        content.setFlexShrink(0, roleForm, assignPersonForm, assignADGroupForm);
+        content.setFlexGrow((double) 2.0, grid);
+        content.setFlexGrow((double) 1.0, roleForm, assignPersonForm, assignADGroupForm);
+        content.setFlexShrink((double) 0, roleForm, assignPersonForm, assignADGroupForm);
         content.addClassNames("content", "gap-m");
         content.setSizeFull();
 
@@ -180,33 +225,26 @@ public class ResourceListView extends VerticalLayout {
     }
 
     private void deleteResourceRoles() {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle(getTranslation("question.delete"));
-
-        Button okButton = new Button("Ok", clickEvent -> {
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader(getTranslation("question.delete"));
+        dialog.setCancelable(true);
+        dialog.addCancelListener(clickEvent -> {
+            grid.deselectAll();
+            dialog.close();
+        });
+        dialog.setRejectable(false);
+        dialog.setConfirmText("Ok");
+        dialog.addConfirmListener(clickEvent -> {
             identityService.deleteRoles(selectedResourceRoles);
             updateList();
             selectedResourceRoles.clear();
             deleteResourceRolesButton.setEnabled(false);
             dialog.close();
         });
-        okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        okButton.getStyle().set("margin-right", "auto");
-
-        Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> {
-            grid.deselectAll();
-            dialog.close();
-        });
-        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-        dialog.getFooter().add(okButton);
-        dialog.getFooter().add(cancelButton);
-
         dialog.open();
-
     }
 
-    public void editResource(Role role) {
+    private void editResource(Role role) {
         if (role == null) {
             closeRoleForm();
         } else {
@@ -224,33 +262,24 @@ public class ResourceListView extends VerticalLayout {
     }
 
     private void updateOrgRoles() {
-        if (identityService.countPersons() > 0) {
-            Dialog dialog = new Dialog();
-            dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
-            // data can be override
-            dialog.setHeaderTitle(getTranslation("question.updateData"));
-
-            TextArea messageArea = new TextArea();
-            messageArea.setWidthFull();
-            messageArea.setValue(getTranslation("updateOrgFromPersons"));
-
-            Button okButton = new Button("Ok", clickEvent -> {
-                dialog.close();
-                if (!identityService.updateOrgRolesFromPersons()) {
-                    NotificationPopUp.show(NotificationPopUp.ERROR, getTranslation("error.import"));
+        if (identityService.countPersons() > (long) 0L) {
+            ConfirmDialog dialog = new ConfirmDialog();
+            dialog.setHeader(getTranslation("question.updateData"));
+            dialog.setText(getTranslation("updateOrgFromPersons"));
+            dialog.setCancelable(true);
+            dialog.addCancelListener(clickEvent -> dialog.close());
+            dialog.setRejectable(false);
+            dialog.setConfirmText("Ok");
+            dialog.addConfirmListener(clickEvent -> {
+                if (progressModalDialog == null) {
+                    progressModalDialog = new ProgressModalDialog();
                 }
-                updateList();
+                progressModalDialog.open("update",
+                        "import.running.message",
+                        "import.running.subMessage");
+                new Thread(identityService::updateOrgRolesFromPersons).start();
+                dialog.close();
             });
-            okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-            okButton.getStyle().set("margin-right", "auto");
-
-            Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
-            cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-            dialog.add(messageArea);
-            dialog.getFooter().add(okButton);
-            dialog.getFooter().add(cancelButton);
-
             dialog.open();
         }
     }
@@ -353,10 +382,10 @@ public class ResourceListView extends VerticalLayout {
         importFromJSONButton.setEnabled(enabled);
 
         if (enabled) {
-            if (identityService.countPersons() == 0) {
+            if (identityService.countPersons() == (long) 0L) {
                 updateButton.setEnabled(false);
             }
-            if (selectedResourceRoles.size() == 0) {
+            if (selectedResourceRoles.isEmpty()) {
                 deleteResourceRolesButton.setEnabled(false);
             }
         }

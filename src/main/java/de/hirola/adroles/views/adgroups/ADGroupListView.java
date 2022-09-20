@@ -5,14 +5,13 @@ import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
@@ -25,7 +24,6 @@ import de.hirola.adroles.util.ServiceResult;
 import de.hirola.adroles.views.MainLayout;
 import de.hirola.adroles.views.NotificationPopUp;
 import de.hirola.adroles.views.ProgressModalDialog;
-import de.hirola.adroles.views.adusers.ADUserListView;
 import de.hirola.adroles.views.persons.PersonAssignRoleForm;
 import de.hirola.adroles.views.persons.PersonForm;
 import org.slf4j.Logger;
@@ -36,6 +34,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import javax.annotation.security.PermitAll;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Route(value="ad-group", layout = MainLayout.class)
 @PageTitle("AD-Groups | AD-Roles")
@@ -68,6 +67,7 @@ public class ADGroupListView extends VerticalLayout {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             identityService.register(this, authentication.getName());
         } catch (RuntimeException exception) {
+            identityService.register(this, null);
             logger.debug("Could not determine currently user.", exception);
         }
 
@@ -111,7 +111,7 @@ public class ADGroupListView extends VerticalLayout {
         addADGroupButton.addThemeVariants(ButtonVariant.LUMO_ICON);
         addADGroupButton.getElement().setAttribute("aria-label", getTranslation("addADGroup"));
         addADGroupButton.setWidth(Global.Component.DEFAULT_ICON_BUTTON_WIDTH);
-        addADGroupButton.addClickListener(click -> addADgroup());
+        addADGroupButton.addClickListener(click -> addADGroup());
 
         deleteADGroupsButton = new Button(new Icon(VaadinIcon.MINUS));
         deleteADGroupsButton.addThemeVariants(ButtonVariant.LUMO_ICON);
@@ -144,7 +144,7 @@ public class ADGroupListView extends VerticalLayout {
         grid.addItemClickListener(event -> editADGroup(event.getItem()));
         grid.addSelectionListener(selection -> {
             selectedADGroups.clear();
-            if (selection.getAllSelectedItems().size() == 0) {
+            if (selection.getAllSelectedItems().isEmpty()) {
                 deleteADGroupsButton.setEnabled(false);
             } else {
                 deleteADGroupsButton.setEnabled(true);
@@ -163,9 +163,9 @@ public class ADGroupListView extends VerticalLayout {
         assignRoleForm.addListener(PersonAssignRoleForm.CloseEvent.class, event -> closeAssignRolesForm());
 
         FlexLayout content = new FlexLayout(grid, adGroupForm, assignRoleForm);
-        content.setFlexGrow(2, grid);
-        content.setFlexGrow(1, adGroupForm, assignRoleForm);
-        content.setFlexShrink(0, adGroupForm, assignRoleForm);
+        content.setFlexGrow(2.0, grid);
+        content.setFlexGrow(1.0, adGroupForm, assignRoleForm);
+        content.setFlexShrink((double) 0, adGroupForm, assignRoleForm);
         content.addClassNames("content", "gap-m");
         content.setSizeFull();
 
@@ -173,37 +173,27 @@ public class ADGroupListView extends VerticalLayout {
     }
 
     private void importADGroups() {
-        Dialog dialog = new Dialog();
-        dialog.setWidth(Global.Component.DEFAULT_DIALOG_WIDTH);
-        dialog.setHeaderTitle(getTranslation("question.updateData"));
-
-        TextArea messageArea = new TextArea();
-        messageArea.setWidthFull();
-        messageArea.setValue(getTranslation("adGroup.importFromActiveDirectory.dialog.message"));
-
-        Button okButton = new Button("Ok", clickEvent -> {
-            progressModalDialog = new ProgressModalDialog(
-                    "update",
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader(getTranslation("question.updateData"));
+        dialog.setText(getTranslation("adGroup.importFromActiveDirectory.dialog.message"));
+        dialog.setCancelable(true);
+        dialog.addCancelListener(clickEvent -> dialog.close());
+        dialog.setRejectable(false);
+        dialog.setConfirmText("Ok");
+        dialog.addConfirmListener(clickEvent -> {
+            dialog.close();
+            if (progressModalDialog == null) {
+                progressModalDialog = new ProgressModalDialog();
+            }
+            progressModalDialog.open("update",
                     "import.running.message",
                     "import.running.subMessage");
-            progressModalDialog.open();
             new Thread(identityService::updateGroupsFromAD).start();
-            dialog.close();
         });
-        okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        okButton.getStyle().set("margin-right", "auto");
-
-        Button cancelButton = new Button(getTranslation("cancel"), (clickEvent) -> dialog.close());
-        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-        dialog.add(messageArea);
-        dialog.getFooter().add(okButton);
-        dialog.getFooter().add(cancelButton);
-
         dialog.open();
     }
 
-    private void addADgroup() {
+    private void addADGroup() {
         editADGroup(new ADGroup());
     }
 
@@ -213,7 +203,7 @@ public class ADGroupListView extends VerticalLayout {
         updateList();
     }
 
-    public void editADGroup(ADGroup adGroup) {
+    private void editADGroup(ADGroup adGroup) {
         if (adGroup == null) {
             closeADGroupForm();
         } else {
@@ -225,30 +215,23 @@ public class ADGroupListView extends VerticalLayout {
     }
 
     private void deleteADGroups() {
-        Dialog dialog = new Dialog();
-        dialog.setHeaderTitle(getTranslation("question.delete"));
-
-        Button okButton = new Button("Ok", clickEvent -> {
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader(getTranslation("question.delete"));
+        dialog.setCancelable(true);
+        dialog.addCancelListener(clickEvent -> {
+            grid.deselectAll();
+            dialog.close();
+        });
+        dialog.setRejectable(false);
+        dialog.setConfirmText("Ok");
+        dialog.addConfirmListener(clickEvent -> {
             identityService.deleteADGroups(selectedADGroups);
             updateList();
             selectedADGroups.clear();
             deleteADGroupsButton.setEnabled(false);
             dialog.close();
         });
-        okButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
-        okButton.getStyle().set("margin-right", "auto");
-
-        Button cancelButton = new Button(getTranslation("cancel"), clickEvent -> {
-            grid.deselectAll();
-            dialog.close();
-        });
-        cancelButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
-
-        dialog.getFooter().add(okButton);
-        dialog.getFooter().add(cancelButton);
-
         dialog.open();
-
     }
 
     private void addRoles(PersonForm.AssignRolesEvent event) {
@@ -289,7 +272,7 @@ public class ADGroupListView extends VerticalLayout {
     private void enableComponents(boolean enabled) {
         filterTextField.setEnabled(enabled);
         addADGroupButton.setEnabled(enabled);
-        if (selectedADGroups.size() == 0) {
+        if (selectedADGroups.isEmpty()) {
             deleteADGroupsButton.setEnabled(false);
         } else {
             deleteADGroupsButton.setEnabled(enabled);
@@ -301,7 +284,7 @@ public class ADGroupListView extends VerticalLayout {
         }
     }
 
-    private boolean matchesTerm(String value, String searchTerm) {
-        return value.toLowerCase().contains(searchTerm.toLowerCase());
+    private static boolean matchesTerm(String value, String searchTerm) {
+        return value.toLowerCase(Locale.ROOT).contains(searchTerm.toLowerCase(Locale.ROOT));
     }
 }
